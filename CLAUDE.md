@@ -1,57 +1,102 @@
-# CLAUDE.md — YT Knowledge Extractor
+# CLAUDE.md — Projet YT Knowledge Extractor
+# Emplacement cible : ~/Projects/yt-knowledge-extractor/CLAUDE.md
+# Portée : ce projet uniquement
+#
+# Ce fichier complète les deux niveaux supérieurs :
+#   ~/.claude/CLAUDE.md        → CLAUDE.global.md (principes universels)
+#   ~/Projects/CLAUDE.md       → CLAUDE.projects.md (conventions communes)
+#
+# INSTALLATION : lancer ./setup.sh à la racine du repo
 
-## Projet
+---
 
-- **Nom** : YT Knowledge Extractor
-- **Type** : CLI Python — extraction de connaissances depuis YouTube
-- **Specs** : `SPECS.md`
-- **Plan d'implémentation** : `PLAN.md` (séquence de 10 prompts)
+## Ce projet
 
-## Avancement
+Outil CLI Python qui extrait la connaissance d'une vidéo YouTube
+et génère une fiche structurée en Markdown sauvegardée dans un vault Obsidian.
 
-- Prompt 1 — Bootstrap : **fait**
-- Prompt 2 — Transcript (`src/transcript.py`) : **fait + testé**
-- Prompt 3 — Métadonnées (`src/metadata.py`) : **fait + testé**
-- Prompt 4 — Couche LLM (`src/llm/`) : **fait + testé**
-- Prompt 5 — Générateur (`src/generator.py`) : **fait + testé**
-- Prompt 6 — Validateur (`src/validator.py`) : **fait + testé**
-- Prompt 7 — Writer (`src/writer.py`) : **fait + testé**
-- Prompt 8 — Point d'entrée (`extract.py`) : **fait + testé** (hors appel API réel)
-- Prompt 9 — Tests : **fait + validé** (8/8 en end-to-end réel avec Gemini 2.5 Flash)
-- Prompt 10 — Documentation : **fait** (README.md, README.fr.md, CONTRIBUTING.md, LICENSE)
+Repo    : https://github.com/[GITHUB]/yt-knowledge-extractor
+Specs   : SPECS.md — lire avant toute implémentation
+Méthode : METHODE_SPECS_CO-CONSTRUCTION.md
 
-**Projet V1 terminé.** Les 10 prompts sont implémentés, testés et documentés.
+## Stack technique
 
-## Règles de travail
-
-1. **Un prompt = un module testé et validé.** Un prompt n'est terminé que quand son module passe ses tests.
-2. **Problèmes transversaux signalés, pas corrigés.** Si un problème transversal est identifié en cours de prompt, le signaler dans le résumé final mais ne pas le corriger avant que le test du module en cours soit passé.
-3. **Un problème transversal = une étape dédiée**, proposée après validation du module en cours.
-
-## Problèmes transversaux identifiés
-
-- **Python 3.9** : yt-dlp affiche un warning de dépréciation. Le projet cible Python 3.10+ (SPECS.md). `from __future__ import annotations` a été ajouté dans tous les fichiers `src/` pour compatibilité 3.9.
-- ~~**Groq free tier inexploitable pour vidéos > ~5 min**~~ : documenté dans config.yml.example, README et CONTRIBUTING. Gemini est maintenant le provider par défaut.
-- ~~**Provider Gemini ajouté mais non documenté**~~ : ajouté dans `.env.example`, `config.yml.example`, README.md, README.fr.md.
-- ~~**`config.yml.example` incohérent**~~ : provider par défaut passé de Groq à Gemini (`gemini-2.5-flash`).
-
-## Stack
-
-- Python 3.10+ (fonctionne sur 3.9 avec `__future__` annotations)
-- Pas de SDK LLM — tous les providers utilisent `requests` directement
-- Dépendances : voir `requirements.txt`
-
-## Commandes
-
-```bash
-pip install -r requirements.txt
-cp config.yml.example config.yml
-cp .env.example .env
-# Ajouter clé Gemini dans .env (GEMINI_API_KEY)
-python extract.py [URL YouTube]
-pytest tests/
+```
+Python 3.10+
+youtube-transcript-api    # extraction transcript + timestamps
+yt-dlp                    # extraction métadonnées YouTube
+python-slugify            # génération slug ASCII depuis titre
+pyyaml + python-dotenv    # lecture config.yml et .env
+requests                  # appels API LLM
 ```
 
-## Langue de communication
+## Constitution — règles absolues de ce projet
 
-- Répondre en français par défaut
+Ces règles ne peuvent jamais être violées, même si le résultat semble acceptable.
+
+1. Jamais inventer un timestamp — si un élément ne peut pas être ancré,
+   le produire sans timestamp plutôt qu'avec un approximatif
+2. Citations textuelles ou absentes — jamais paraphrasées
+3. Section "Mes notes" toujours vide — jamais générée par le LLM
+4. Définitions de l'auteur uniquement — jamais des définitions génériques
+5. Sources filtrées : auteur ou titre identifiable uniquement
+6. Transcript complet envoyé en une seule fois — pas de chunking
+7. Fiche incomplète : sauvegarder + avertissement en tête de fichier
+8. Contexte LLM insuffisant : bloquer avec message explicite, pas tronquer
+
+## Providers LLM disponibles
+
+| Provider | Variable env | Gratuit |
+|---|---|---|
+| groq | GROQ_API_KEY | Oui (14 400 req/jour) |
+| anthropic | ANTHROPIC_API_KEY | Non (~0,05€/vidéo) |
+| openai | OPENAI_API_KEY | Non |
+| ollama | — | Oui (local) |
+
+## Comportements aux limites — décisions actées
+
+| Situation | Comportement |
+|---|---|
+| Sous-titres absents | Erreur terminal, pas de fichier |
+| Langue demandée absente | Fallback + avertissement terminal |
+| Chapitres YouTube natifs présents | Utilisés comme base du chapitrage |
+| Contexte modèle insuffisant | Bloquer avec tokens requis vs disponibles |
+| Fiche < 6 blocs chapitrage | Sauvegarder + avertissement en tête |
+| Fiche < 3 concepts | Sauvegarder + avertissement en tête |
+| Fichier existant | Demander confirmation, jamais écraser sans accord |
+| Erreur API LLM | Erreur terminal avec code HTTP, pas de fichier |
+
+## URL de référence pour les tests
+
+```
+https://youtu.be/T_GqhyYqTD4
+Chaîne : @SamouraiDansant
+Transcript : FR auto-généré, 697 segments
+```
+
+## Séquence d'implémentation — ordre obligatoire
+
+```
+1.  Bootstrap (structure + fichiers vides + docstrings)
+2.  src/transcript.py
+3.  src/metadata.py
+4.  src/llm/base.py + src/llm/groq.py
+5.  src/generator.py
+6.  tests/test_contract.py    ← AVANT validateur et writer
+7.  src/validator.py          ← implémenté pour passer les tests
+8.  src/writer.py
+9.  extract.py
+10. tests/test_smoke.py       ← APRÈS pipeline complet
+11. README.md + README.fr.md
+```
+
+Ne jamais paralléliser des étapes de cette séquence.
+Ne jamais passer à l'étape N+1 sans que l'étape N soit validée.
+
+## Signal d'alarme
+
+Si un cas non couvert par les specs est rencontré :
+
+> 🚨 SPEC MANQUANTE : [description précise]
+
+Stopper et attendre une instruction explicite. Ne pas improviser.
