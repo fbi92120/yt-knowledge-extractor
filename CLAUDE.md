@@ -47,7 +47,7 @@
 pip install -r requirements.txt
 cp config.yml.example config.yml
 cp .env.example .env
-# Ajouter clé Groq dans .env
+# Ajouter clé Gemini dans .env (GEMINI_API_KEY)
 python extract.py [URL YouTube]
 pytest tests/
 ```

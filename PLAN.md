@@ -145,7 +145,7 @@ Le structure test vérifie les 8 points du validateur.
 pip install -r requirements.txt
 cp config.yml.example config.yml
 cp .env.example .env
-# Ajouter clé Groq dans .env
+# Ajouter clé Gemini dans .env (GEMINI_API_KEY)
 python extract.py https://youtu.be/T_GqhyYqTD4
 # → Fichier .md créé, 10 sections, aucune erreur
 pytest tests/
