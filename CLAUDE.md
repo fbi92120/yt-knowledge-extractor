@@ -22,7 +22,7 @@ Méthode : METHODE_SPECS_CO-CONSTRUCTION.md
 ## Stack technique
 
 ```
-Python 3.10+
+Python 3.12 via .venv/ (venv local, PEP 668-compliant — voir setup.sh)
 youtube-transcript-api    # extraction transcript + timestamps
 yt-dlp                    # extraction métadonnées YouTube
 python-slugify            # génération slug ASCII depuis titre

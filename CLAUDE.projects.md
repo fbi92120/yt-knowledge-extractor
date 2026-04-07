@@ -44,6 +44,18 @@
     └── test_smoke.py      # test d'intégration — en dernier
 ```
 
+### Environnement Python (tout projet Python)
+
+- Chaque projet a son propre venv à la racine : `.venv/`
+- `.venv/` est dans `.gitignore`
+- Version Python cible : la plus récente stable supportée par les deps
+  (aujourd'hui 3.12, via Homebrew : `brew install python@3.12`)
+- `setup.sh` crée le venv et installe les deps dedans (PEP 668-compliant)
+- Les alias terminal pointent vers `.venv/bin/python` en chemin absolu,
+  jamais vers `python3` système
+- `requirements.txt` inclut les deps runtime ET test (pas de split dev/prod
+  tant que le projet n'en a pas besoin)
+
 ### Git — stratégie de commit
 
 Commiter par bloc fonctionnel, pas par ligne. Format :
