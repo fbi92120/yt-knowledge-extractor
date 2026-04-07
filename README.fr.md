@@ -131,6 +131,10 @@ Le projet supporte plusieurs providers LLM via une interface unifiée. Changez d
 
 Chaque fiche contient 10 sections (voir `SPECS.md` Bloc 3 pour le template exact).
 
+## Exemples
+
+Voir [`examples/`](examples/) pour trois fiches générées par l'outil sur de vraies vidéos YouTube. Elles donnent une idée concrète de ce que produit le pipeline sans avoir à le lancer vous-même.
+
 ## Tests
 
 ```bash
