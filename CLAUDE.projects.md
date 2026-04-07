@@ -17,8 +17,11 @@
 ### Langues
 - Code : anglais
 - Commentaires dans le code : français
-- Documentation (README, SPECS) : anglais
-- README.fr.md : français si audience francophone
+- Docs publiques (README.md, CONTRIBUTING.md, LICENSE) : anglais
+  → point d'entrée d'un visiteur GitHub, convention open-source standard
+- Traductions du README : README.[lang].md (ex: README.fr.md)
+- Docs internes (SPECS.md, PLAN.md, CLAUDE.md, méthodologie) : langue de l'équipe
+  → français pour les projets de François par défaut
 - Livrables générés : français par défaut, configurable
 
 ### Structure systématique de tout nouveau projet
