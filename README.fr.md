@@ -74,10 +74,21 @@ Vos fiches seront synchronisées automatiquement entre Mac et mobile via iCloud.
 
 ## Utilisation
 
+Deux façons d'invoquer l'outil :
+
+**Mode interactif (recommandé)** — pas de prise de tête avec les caractères spéciaux du shell :
+
 ```bash
-python extract.py [URL YouTube]
-# ou, avec l'alias installé par setup.sh :
-yt [URL YouTube]
+yt
+# Entrez le lien YouTube : <coller l'URL ici>
+```
+
+**Mode direct** — passer l'URL en argument (doit être entre guillemets car les URLs YouTube contiennent `?` et parfois `&`) :
+
+```bash
+yt "https://www.youtube.com/watch?v=VIDEO_ID"
+# ou sans l'alias :
+python extract.py "https://www.youtube.com/watch?v=VIDEO_ID"
 ```
 
 **Formats d'URL acceptés :**

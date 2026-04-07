@@ -102,7 +102,7 @@ echo ""
 echo "⚡ Installation de l'alias terminal..."
 echo ""
 
-ALIAS_LINE='alias yt="python3 ~/Projects/yt-knowledge-extractor/extract.py"'
+ALIAS_LINE='alias yt="$HOME/Projects/yt-knowledge-extractor/.venv/bin/python $HOME/Projects/yt-knowledge-extractor/extract.py"'
 ZSHRC="$HOME/.zshrc"
 
 if grep -q 'alias yt=' "$ZSHRC" 2>/dev/null; then
@@ -120,17 +120,34 @@ echo "   Usage : yt [URL YouTube]"
 echo "   Exemple : yt https://youtu.be/T_GqhyYqTD4"
 echo ""
 
-# ─── Étape 5 — Dépendances Python ──────────────────────────────────────────
+# ─── Étape 5 — Environnement virtuel + dépendances Python ─────────────────
 
-echo "🐍 Installation des dépendances Python..."
+echo "🐍 Création de l'environnement virtuel et installation des dépendances..."
 
-if command -v python3 &> /dev/null; then
-    python3 -m pip install -r requirements.txt --quiet
-    echo "   ✓ Dépendances installées"
+# Cherche python3.12 en priorité, sinon python3.11, sinon python3 (doit être >= 3.10)
+if command -v python3.12 &> /dev/null; then
+    PYTHON_BIN=python3.12
+elif command -v python3.11 &> /dev/null; then
+    PYTHON_BIN=python3.11
+elif command -v python3 &> /dev/null; then
+    PYTHON_BIN=python3
 else
-    echo "   ✗ Python 3 non trouvé — installer Python 3.10+ et relancer"
+    echo "   ✗ Aucun Python 3 trouvé — installer Python 3.10+ (ex: brew install python@3.12)"
     exit 1
 fi
+
+echo "   → Python utilisé : $($PYTHON_BIN --version)"
+
+if [ ! -d .venv ]; then
+    $PYTHON_BIN -m venv .venv
+    echo "   ✓ Environnement virtuel créé : .venv/"
+else
+    echo "   → .venv existe déjà, non recréé"
+fi
+
+.venv/bin/pip install --quiet --upgrade pip
+.venv/bin/pip install --quiet -r requirements.txt
+echo "   ✓ Dépendances installées dans .venv/"
 
 echo ""
 
@@ -151,11 +168,11 @@ echo ""
 if grep -q "^GEMINI_API_KEY=AIza" .env 2>/dev/null; then
     echo "   Clé API détectée. Lancement en cours..."
     echo ""
-    python3 extract.py "$YOUTUBE_URL"
+    .venv/bin/python extract.py "$YOUTUBE_URL"
 else
     echo "   ⚠️  Clé API non configurée dans .env"
     echo "   → Renseigner GEMINI_API_KEY dans .env puis lancer :"
-    echo "      python extract.py \"$YOUTUBE_URL\""
+    echo "      .venv/bin/python extract.py \"$YOUTUBE_URL\""
 fi
 
 echo ""

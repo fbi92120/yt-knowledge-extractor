@@ -74,10 +74,21 @@ Your notes will sync automatically between Mac and mobile through iCloud.
 
 ## Usage
 
+Two ways to invoke the tool:
+
+**Interactive mode (recommended)** — no quoting headaches with shell special characters:
+
 ```bash
-python extract.py [YouTube URL]
-# or, with the alias installed by setup.sh:
-yt [YouTube URL]
+yt
+# Entrez le lien YouTube : <paste URL here>
+```
+
+**Direct mode** — pass the URL as an argument (must be quoted because YouTube URLs contain `?` and sometimes `&`):
+
+```bash
+yt "https://www.youtube.com/watch?v=VIDEO_ID"
+# or without the alias:
+python extract.py "https://www.youtube.com/watch?v=VIDEO_ID"
 ```
 
 **Accepted URL formats:**

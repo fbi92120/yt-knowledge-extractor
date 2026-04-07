@@ -57,13 +57,19 @@ def load_config() -> dict:
 
 def main():
     """Pipeline principal."""
-    if len(sys.argv) < 2:
-        print("Usage : python extract.py [URL YouTube]")
-        sys.exit(1)
-
-    url = sys.argv[1]
-
     config = load_config()
+
+    if len(sys.argv) >= 2:
+        url = sys.argv[1]
+    else:
+        try:
+            url = input("Entrez le lien YouTube : ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print("\nAnnulé.", file=sys.stderr)
+            sys.exit(1)
+        if not url:
+            print("Aucune URL fournie.", file=sys.stderr)
+            sys.exit(1)
 
     try:
         video_id = extract_video_id(url)
