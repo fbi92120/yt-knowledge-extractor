@@ -97,7 +97,30 @@ fi
 
 echo ""
 
-# ─── Étape 4 — Dépendances Python ──────────────────────────────────────────
+# ─── Étape 4 — Alias terminal ──────────────────────────────────────────────
+
+echo "⚡ Installation de l'alias terminal..."
+echo ""
+
+ALIAS_LINE='alias yt="python3 ~/Projects/yt-knowledge-extractor/extract.py"'
+ZSHRC="$HOME/.zshrc"
+
+if grep -q 'alias yt=' "$ZSHRC" 2>/dev/null; then
+    echo "   → Alias 'yt' déjà présent dans ~/.zshrc, non modifié"
+else
+    echo "" >> "$ZSHRC"
+    echo "# YT Knowledge Extractor" >> "$ZSHRC"
+    echo "$ALIAS_LINE" >> "$ZSHRC"
+    echo "   ✓ Alias ajouté dans ~/.zshrc"
+    echo "   → Pour l'activer immédiatement : source ~/.zshrc"
+fi
+
+echo ""
+echo "   Usage : yt [URL YouTube]"
+echo "   Exemple : yt https://youtu.be/T_GqhyYqTD4"
+echo ""
+
+# ─── Étape 5 — Dépendances Python ──────────────────────────────────────────
 
 echo "🐍 Installation des dépendances Python..."
 
@@ -111,21 +134,44 @@ fi
 
 echo ""
 
+# ─── Étape 5 — Générer une première fiche (optionnel) ──────────────────────
+
+echo "🎬 Générer une première fiche..."
+echo ""
+echo "   Vous pouvez tester l'outil maintenant sur une vidéo YouTube."
+echo "   Laisser vide pour utiliser la vidéo de référence du projet."
+echo "   (https://youtu.be/T_GqhyYqTD4 — Le SamourAI)"
+echo ""
+read -p "   URL YouTube [vidéo de référence] : " YOUTUBE_URL
+YOUTUBE_URL=${YOUTUBE_URL:-https://youtu.be/T_GqhyYqTD4}
+
+echo ""
+
+# Vérifier que la clé API est configurée avant de lancer
+if grep -q "^GEMINI_API_KEY=AIza" .env 2>/dev/null; then
+    echo "   Clé API détectée. Lancement en cours..."
+    echo ""
+    python3 extract.py "$YOUTUBE_URL"
+else
+    echo "   ⚠️  Clé API non configurée dans .env"
+    echo "   → Renseigner GEMINI_API_KEY dans .env puis lancer :"
+    echo "      python extract.py \"$YOUTUBE_URL\""
+fi
+
+echo ""
+
 # ─── Résumé ────────────────────────────────────────────────────────────────
 
 echo "╔══════════════════════════════════════════════╗"
 echo "║              Installation terminée           ║"
 echo "╚══════════════════════════════════════════════╝"
 echo ""
-echo "Prochaines étapes :"
-echo "  1. Renseigner votre clé API dans .env"
-echo "     ex : GROQ_API_KEY=gsk_..."
+echo "Usage :"
+echo "  python extract.py [URL YouTube]"
 echo ""
-echo "  2. Vérifier le vault path dans config.yml"
-echo "     vault_path: $VAULT_PATH"
-echo ""
-echo "  3. Lancer le test de référence :"
-echo "     python extract.py https://youtu.be/T_GqhyYqTD4"
+echo "Exemples :"
+echo "  python extract.py https://youtu.be/T_GqhyYqTD4"
+echo "  python extract.py https://www.youtube.com/watch?v=T_GqhyYqTD4"
 echo ""
 echo "Documentation complète : README.md"
 echo ""

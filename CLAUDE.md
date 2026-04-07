@@ -15,7 +15,7 @@
 Outil CLI Python qui extrait la connaissance d'une vidéo YouTube
 et génère une fiche structurée en Markdown sauvegardée dans un vault Obsidian.
 
-Repo    : https://github.com/[GITHUB]/yt-knowledge-extractor
+Repo    : https://github.com/fbi92120/yt-knowledge-extractor
 Specs   : SPECS.md — lire avant toute implémentation
 Méthode : METHODE_SPECS_CO-CONSTRUCTION.md
 
@@ -48,7 +48,8 @@ Ces règles ne peuvent jamais être violées, même si le résultat semble accep
 
 | Provider | Variable env | Gratuit |
 |---|---|---|
-| groq | GROQ_API_KEY | Oui (14 400 req/jour) |
+| gemini | GEMINI_API_KEY | Oui (free tier) — provider par défaut |
+| groq | GROQ_API_KEY | Limité ~6k tokens, inutilisable vidéos > 5min |
 | anthropic | ANTHROPIC_API_KEY | Non (~0,05€/vidéo) |
 | openai | OPENAI_API_KEY | Non |
 | ollama | — | Oui (local) |
@@ -92,6 +93,12 @@ Transcript : FR auto-généré, 697 segments
 
 Ne jamais paralléliser des étapes de cette séquence.
 Ne jamais passer à l'étape N+1 sans que l'étape N soit validée.
+
+Note : cette séquence décrit la méthode cible (TDD partiel).
+Ce projet a suivi la séquence de PLAN.md sans test_contract.py —
+la méthode a été extraite a posteriori.
+
+PLAN.md décrit la séquence réellement exécutée sur ce projet.
 
 ## Signal d'alarme
 
