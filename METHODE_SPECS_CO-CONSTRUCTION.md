@@ -1,5 +1,5 @@
-# Méthode de co-construction des spécifications
-## Cas d'application : YT Knowledge Extractor
+# Ce qu'un non-dev peut produire avec un LLM quand il gouverne au lieu de vibe coder — du code qui tient, sans patches
+## Cas d'application : Extraire la connaissance d'une vidéo youtube
 
 **Auteur** : François Biller
 **Date** : 2026-04-05
