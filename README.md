@@ -53,24 +53,48 @@ Get a free Gemini API key at [ai.google.dev](https://ai.google.dev/).
 
 Edit `config.yml` to set your output mode (`obsidian` or `local`) and the path of your Obsidian vault or local folder.
 
+## Obsidian setup
+
+If you want generated notes to land directly in an Obsidian vault synced across Mac and mobile:
+
+1. **Install Obsidian on desktop** — https://obsidian.md/download
+2. **Install Obsidian mobile** — App Store (iOS) or Google Play (Android)
+3. **Create a vault in Obsidian's native iCloud folder**
+   - On Mac, the path is: `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/`
+   - Create a subfolder `YT-Knowledge` there (this will be your vault)
+4. **Update `vault_path` in `config.yml`** to point to that subfolder:
+   ```yaml
+   vault_path: /Users/[user]/Library/Mobile Documents/iCloud~md~obsidian/Documents/YT-Knowledge
+   ```
+5. **Open Obsidian mobile** and select the vault
+   - *Open existing vault → iCloud → Connected to iCloud*
+   - Select `YT-Knowledge`
+
+Your notes will sync automatically between Mac and mobile through iCloud.
+
 ## Usage
 
 ```bash
-python extract.py https://youtu.be/T_GqhyYqTD4
+python extract.py [YouTube URL]
+# or, with the alias installed by setup.sh:
+yt [YouTube URL]
 ```
 
-The tool prints progress at each step and confirms the output path:
+**Accepted URL formats:**
 
 ```
-Extraction des métadonnées...
-  → Claude Mythos : le modèle secret... (24:28)
-Extraction du transcript (fr)...
-  → 697 segments extraits
-Génération de la fiche via gemini...
-  → Validation OK
-
-✓ Fiche créée : /path/to/vault/channel-slug/2026-04-02-claude-mythos...md
+https://youtu.be/VIDEO_ID
+https://www.youtube.com/watch?v=VIDEO_ID
+https://www.youtube.com/shorts/VIDEO_ID
 ```
+
+The tool shows a spinner with the current step and confirms the output path at the end:
+
+```
+✓ Fiche créée : file:///path/to/vault/channel-slug/2026-04-02-claude-mythos...md
+```
+
+On macOS Terminal, the `file://` path is clickable and opens the note directly.
 
 ## LLM providers
 

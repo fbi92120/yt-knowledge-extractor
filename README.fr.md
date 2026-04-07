@@ -53,24 +53,48 @@ Obtenez une clé Gemini gratuite sur [ai.google.dev](https://ai.google.dev/).
 
 Éditez `config.yml` pour définir le mode de sortie (`obsidian` ou `local`) et le chemin de votre vault Obsidian ou de votre dossier local.
 
+## Configuration Obsidian
+
+Si vous voulez que les fiches générées arrivent directement dans un coffre Obsidian synchronisé entre Mac et mobile :
+
+1. **Installer Obsidian sur ordinateur** — https://obsidian.md/download
+2. **Installer Obsidian mobile** — App Store (iOS) ou Google Play (Android)
+3. **Créer un coffre dans le dossier iCloud natif Obsidian**
+   - Sur Mac, le chemin est : `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/`
+   - Créer un sous-dossier `YT-Knowledge` à cet endroit (ce sera votre coffre)
+4. **Mettre à jour `vault_path` dans `config.yml`** pour pointer vers ce sous-dossier :
+   ```yaml
+   vault_path: /Users/[user]/Library/Mobile Documents/iCloud~md~obsidian/Documents/YT-Knowledge
+   ```
+5. **Ouvrir Obsidian mobile** et sélectionner le coffre
+   - *Utiliser mon coffre existant → iCloud → Connecté à iCloud*
+   - Sélectionner `YT-Knowledge`
+
+Vos fiches seront synchronisées automatiquement entre Mac et mobile via iCloud.
+
 ## Utilisation
 
 ```bash
-python extract.py https://youtu.be/T_GqhyYqTD4
+python extract.py [URL YouTube]
+# ou, avec l'alias installé par setup.sh :
+yt [URL YouTube]
 ```
 
-L'outil affiche la progression à chaque étape et confirme le chemin de sortie :
+**Formats d'URL acceptés :**
 
 ```
-Extraction des métadonnées...
-  → Claude Mythos : le modèle secret... (24:28)
-Extraction du transcript (fr)...
-  → 697 segments extraits
-Génération de la fiche via gemini...
-  → Validation OK
-
-✓ Fiche créée : /chemin/vers/vault/chaine-slug/2026-04-02-claude-mythos...md
+https://youtu.be/VIDEO_ID
+https://www.youtube.com/watch?v=VIDEO_ID
+https://www.youtube.com/shorts/VIDEO_ID
 ```
+
+L'outil affiche un spinner avec l'étape courante et confirme le chemin de sortie à la fin :
+
+```
+✓ Fiche créée : file:///chemin/vers/vault/chaine-slug/2026-04-02-claude-mythos...md
+```
+
+Sur Terminal macOS, le chemin `file://` est cliquable et ouvre la fiche directement.
 
 ## Providers LLM
 
