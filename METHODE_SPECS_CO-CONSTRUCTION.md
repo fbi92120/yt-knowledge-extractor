@@ -9,6 +9,27 @@
 
 ---
 
+## Sources & remerciements
+
+Cette méthode n'est pas née dans le vide.
+
+Les réflexions sur la gouvernance IA, la dette de contrôle, le rôle irremplaçable
+de l'humain et la co-construction avec un LLM sont directement nourries par les
+vidéos de la chaîne [Le SamourAI](https://www.youtube.com/@SamouraiDansant) et
+par la formation accessible sur [Patreon](https://www.patreon.com/cw/SamouraiDansant)
+et [surhumain.ai](https://surhumain.ai).
+
+Si vous l'avez suivie, vous reconnaîtrez immédiatement les principes à l'œuvre.
+
+Si ce n'est pas le cas, je vous encourage à la suivre. Au niveau Stratège, ce
+qu'elle enseigne vous donnera quelques longueurs d'avance pour décrypter ce qui
+se joue vraiment derrière les annonces et rebondissements quotidiens de l'IA
+générative.
+
+Cette méthode est ma façon de rendre visible ce que j'en ai appliqué.
+
+---
+
 ## Présentation
 
 Ce document est né d'un constat simple : la majorité des projets développés
