@@ -145,6 +145,10 @@ Les tests sont sautés automatiquement si `GEMINI_API_KEY` n'est pas définie �
 
 La vidéo de test de référence est [`T_GqhyYqTD4`](https://youtu.be/T_GqhyYqTD4) de la chaîne [@SamouraiDansant](https://www.youtube.com/@SamouraiDansant).
 
+## Méthode
+
+Ce projet a été construit avec la méthode [Vibe Coding, Governed](https://github.com/fbi92120/vibe-coding-governed) — specs avant le code, l'humain décide, le LLM exécute.
+
 ## Contribuer
 
 Voir [CONTRIBUTING.md](CONTRIBUTING.md).

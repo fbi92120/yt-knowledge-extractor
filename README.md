@@ -145,6 +145,10 @@ Tests are skipped if `GEMINI_API_KEY` is not defined, so they work in CI environ
 
 The reference test video is [`T_GqhyYqTD4`](https://youtu.be/T_GqhyYqTD4) from the [@SamouraiDansant](https://www.youtube.com/@SamouraiDansant) channel.
 
+## Method
+
+This project was built using the [Vibe Coding, Governed](https://github.com/fbi92120/vibe-coding-governed) method — spec before code, human decides, LLM executes.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
