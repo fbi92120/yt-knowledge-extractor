@@ -2,11 +2,9 @@
 # Emplacement cible : ~/Projects/yt-knowledge-extractor/CLAUDE.md
 # Portée : ce projet uniquement
 #
-# Ce fichier complète les deux niveaux supérieurs :
-#   ~/.claude/CLAUDE.md        → CLAUDE.global.md (principes universels)
-#   ~/Projects/CLAUDE.md       → CLAUDE.projects.md (conventions communes)
-#
-# INSTALLATION : lancer ./setup.sh à la racine du repo
+# Ce fichier complète les conventions transversales définies dans :
+#   https://github.com/fbi92120/vibe-coding-governed
+#   (CLAUDE.global.md, CLAUDE.projects.md, METHODE_SPECS_CO-CONSTRUCTION.md)
 
 ---
 
@@ -43,6 +41,9 @@ Ces règles ne peuvent jamais être violées, même si le résultat semble accep
 6. Transcript complet envoyé en une seule fois — pas de chunking
 7. Fiche incomplète : sauvegarder + avertissement en tête de fichier
 8. Contexte LLM insuffisant : bloquer avec message explicite, pas tronquer
+9. Déduction ancrée uniquement : toute inférence (thèse, transition,
+   définition, question) rattachée à un segment du transcript.
+   Si l'ancre n'existe pas : omission ou marquage [implicite]. Jamais d'approximation.
 
 ## Providers LLM disponibles
 
