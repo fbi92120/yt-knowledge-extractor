@@ -23,10 +23,10 @@ def generate_slug(title: str) -> str:
 
 
 def build_file_path(config: dict, channel: str, upload_date: str, title: str) -> Path:
-    """Construit le chemin complet du fichier de sortie.
+    """Construit le chemin complet du fichier de sortie (sans créer les dossiers).
 
     Format : [vault_path]/[chaîne-slug]/[YYYY-MM-DD]-[slug].md
-    Crée le sous-dossier chaîne si nécessaire.
+    Le répertoire parent est créé par write_note, après confirmation overwrite.
 
     Returns:
         Path complet du fichier Markdown
@@ -43,10 +43,7 @@ def build_file_path(config: dict, channel: str, upload_date: str, title: str) ->
     title_slug = generate_slug(title)
     filename = f"{upload_date}-{title_slug}.md"
 
-    dir_path = base_path / channel_slug
-    dir_path.mkdir(parents=True, exist_ok=True)
-
-    return dir_path / filename
+    return base_path / channel_slug / filename
 
 
 def write_note(file_path: Path, content: str, warnings: list[str], overwrite: bool = False) -> Path:
@@ -71,6 +68,8 @@ def write_note(file_path: Path, content: str, warnings: list[str], overwrite: bo
     """
     if file_path.exists() and not overwrite:
         raise FileExistsError(str(file_path))
+
+    file_path.parent.mkdir(parents=True, exist_ok=True)
 
     header = build_warning_header(warnings)
     full_content = header + content if header else content
