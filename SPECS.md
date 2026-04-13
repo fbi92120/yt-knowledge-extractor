@@ -1,9 +1,9 @@
 # SPECS.md — YT Knowledge Extractor
 
-**Version** : 1.1  
-**Date** : 2026-04-11  
+**Version** : 1.2  
+**Date** : 2026-04-13 13:21  
 **Auteur** : François Biller  
-**Statut** : Validé — amendements qualité prompt intégrés  
+**Statut** : Validé — correction sources, URLs inventées, checklist  
 **Repo** : https://github.com/fbi92120/yt-knowledge-extractor  
 **Chaîne de test** : [@SamouraiDansant](https://www.youtube.com/@SamouraiDansant)
 
@@ -266,17 +266,26 @@ Do not split it, do not add spaces inside the asterisks.
 
 ### 9. Sources and references
 ## Sources & références
-Filtered from the YouTube video description provided in {description}.
 
-Include ONLY sources with an identifiable author or title:
-books, articles, studies, named websites, named tools.
+Sources are extracted EXCLUSIVELY from the YouTube video
+description provided in {description}.
 
-Ignore: social media links, generic URLs, sponsor mentions,
-channel promotion, affiliate links, timestamps-only references.
+Rules — strictly enforced:
+- Include ONLY sources with an identifiable author or title
+  (books, articles, studies, named websites, named tools)
+- NEVER invent a URL. If a source has no URL in {description},
+  list it without a URL or omit it entirely.
+- NEVER use the video URL as a source URL.
+- References mentioned verbally in the transcript but absent
+  from {description} must NOT appear in this section.
+- Ignore: social media links, generic URLs, sponsor mentions,
+  channel promotion, affiliate links, timestamps-only references.
 
-Format: - [Title or author name](URL)
+Format with URL: - [Title or author name](URL)
+Format without URL: - Title or author name
 
-If no qualifying sources are found: write exactly "Aucune source identifiée."
+If no qualifying sources are found in {description}:
+write exactly "Aucune source identifiée."
 
 ### 10. Full timestamped transcript
 ---
@@ -293,6 +302,7 @@ Format: [HH:MM:SS] text
 5. Read the full transcript before structuring. Do not process by chunks.
 6. The sources section contains only items from {description}, never invented references.
 7. Every inference (thesis sentence, argumentative transition, concept definition, open question) must be anchorable to a transcript segment. If no anchor exists: omit or mark [implicite]. Never approximate.
+8. Never invent a URL for sources. Sources come exclusively from {description}. If a source has no URL in {description}, list it without a URL. Never use the video URL as a source URL.
 ```
 
 ---
@@ -312,6 +322,7 @@ Format: [HH:MM:SS] text
 | Fichier déjà existant | Demande de confirmation : *"Ce fichier existe déjà : [chemin]. Écraser ? (o/N)"* Aucune action sans confirmation explicite. |
 | Régénération après changement de specs | Archiver les fiches existantes dans `[vault_path]/[chaîne]/v1/` avant régénération. Les nouvelles fiches suivent les specs courantes. Les fiches archivées servent de référence pour la validation sur échantillon. |
 | Description YouTube vide | Section sources affiche "Aucune source identifiée." sans erreur. |
+| Sources non présentes dans la description | Listées sans URL ou omises. Jamais d'URL inventée. Jamais l'URL de la vidéo comme source. |
 
 ---
 
@@ -377,6 +388,7 @@ Après chaque génération, 6 questions à se poser avant de valider la fiche :
 4. **Citations** : les formulations notables sont-elles mot pour mot, ou légèrement paraphrasées ?
 5. **Questions ouvertes** : les questions "Soulevées dans la vidéo" ont-elles toutes un timestamp anchor ? Les "Ouvertures suggérées" sont-elles marquées [inférence] et libres de projection sur le profil utilisateur ?
 6. **Thèse centrale** : chaque phrase pourrait-elle s'appliquer à une autre vidéo sur le même sujet sans être fausse ? Si oui — reformuler depuis le transcript.
+7. **Sources** : les URLs des sources sont-elles présentes dans la description YouTube ? Toute URL absente de la description est une URL inventée — supprimer.
 
 ---
 
@@ -435,6 +447,6 @@ pour aboutir à [conclusion] [▶ 00:38:10](lien).
 
 ---
 
-*Fin des spécifications V1.1*  
-*Amendements : règle 9 Bloc 0 + contraintes Bloc 3 sections déductives (thèse, carte, concepts, questions)*  
+*Fin des spécifications V1.2*  
+*Amendements : réécriture section Sources Bloc 3, règle 8 Absolute rules, Bloc 4 URLs inventées, checklist point 7*  
 *Document suivant : `README.md` — installation et usage*

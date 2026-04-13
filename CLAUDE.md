@@ -101,6 +101,11 @@ la méthode a été extraite a posteriori.
 
 PLAN.md décrit la séquence réellement exécutée sur ce projet.
 
+## Gestion des documents de spec
+
+Tout document de spec modifié inclut la date ET l'heure de dernière
+modification dans son header (ex. `**Date** : 2026-04-13 14:30`).
+
 ## Signal d'alarme
 
 Si un cas non couvert par les specs est rencontré :

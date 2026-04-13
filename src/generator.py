@@ -100,17 +100,26 @@ Do not split it, do not add spaces inside the asterisks.
 
 ### 9. Sources and references
 ## Sources & références
-Filtered from the YouTube video description provided in {description}.
 
-Include ONLY sources with an identifiable author or title:
-books, articles, studies, named websites, named tools.
+Sources are extracted EXCLUSIVELY from the YouTube video
+description provided in {description}.
 
-Ignore: social media links, generic URLs, sponsor mentions,
-channel promotion, affiliate links, timestamps-only references.
+Rules — strictly enforced:
+- Include ONLY sources with an identifiable author or title
+  (books, articles, studies, named websites, named tools)
+- NEVER invent a URL. If a source has no URL in {description},
+  list it without a URL or omit it entirely.
+- NEVER use the video URL as a source URL.
+- References mentioned verbally in the transcript but absent
+  from {description} must NOT appear in this section.
+- Ignore: social media links, generic URLs, sponsor mentions,
+  channel promotion, affiliate links, timestamps-only references.
 
-Format: - [Title or author name](URL)
+Format with URL: - [Title or author name](URL)
+Format without URL: - Title or author name
 
-If no qualifying sources are found: write exactly "Aucune source identifiée."
+If no qualifying sources are found in {description}:
+write exactly "Aucune source identifiée."
 
 ## Absolute rules — never violate these
 1. Never invent a timestamp. If you cannot anchor an element, omit the timestamp rather than approximating.
@@ -119,6 +128,8 @@ If no qualifying sources are found: write exactly "Aucune source identifiée."
 4. Do not generate any content for "Mes notes". Leave it empty.
 5. Read the full transcript before structuring. Do not process by chunks.
 6. The sources section contains only items from {description}, never invented references.
+7. Every inference (thesis sentence, argumentative transition, concept definition, open question) must be anchorable to a transcript segment. If no anchor exists: omit or mark [implicite]. Never approximate.
+8. Never invent a URL for sources. Sources come exclusively from {description}. If a source has no URL in {description}, list it without a URL. Never use the video URL as a source URL.
 
 IMPORTANT: Do NOT include section 10 (transcript). It will be appended automatically after your response.\
 """
