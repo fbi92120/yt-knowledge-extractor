@@ -49,23 +49,28 @@ def build_file_path(config: dict, channel: str, upload_date: str, title: str) ->
     return dir_path / filename
 
 
-def write_note(file_path: Path, content: str, warnings: list[str]) -> Path:
+def write_note(file_path: Path, content: str, warnings: list[str], overwrite: bool = False) -> Path:
     """Écrit la fiche Markdown sur disque.
 
-    - Demande confirmation si le fichier existe déjà
+    - Si overwrite=False et fichier existant : lève FileExistsError
     - Préfixe les avertissements du validateur en tête de fiche
     - Écriture UTF-8
+
+    Args:
+        file_path: chemin de destination du fichier Markdown
+        content: contenu généré par le LLM
+        warnings: liste d'avertissements du validateur (préfixés en tête)
+        overwrite: si True, écrase silencieusement un fichier existant;
+                   si False (défaut), lève FileExistsError si le fichier existe
 
     Returns:
         Path du fichier écrit
 
     Raises:
-        SystemExit: si l'utilisateur refuse l'écrasement
+        FileExistsError: si le fichier existe et overwrite=False
     """
-    if file_path.exists():
-        answer = input(f"Ce fichier existe déjà : {file_path}\nÉcraser ? (o/N) ")
-        if answer.strip().lower() not in ("o", "oui", "y", "yes"):
-            raise SystemExit("Écriture annulée par l'utilisateur.")
+    if file_path.exists() and not overwrite:
+        raise FileExistsError(str(file_path))
 
     header = build_warning_header(warnings)
     full_content = header + content if header else content

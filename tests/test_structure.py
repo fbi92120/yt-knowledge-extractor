@@ -75,3 +75,15 @@ def test_open_questions_subsections(generated_note_content):
         "Sous-section manquante : '### Soulevées dans la vidéo'"
     assert "### Ouvertures suggérées" in generated_note_content, \
         "Sous-section manquante : '### Ouvertures suggérées'"
+
+
+def test_timestamp_link_consistency(generated_note_content):
+    """Dans chaque [▶ HH:MM:SS](?t=N), N doit correspondre à HH×3600+MM×60+SS."""
+    pattern = re.compile(r"\[▶\s+(\d{2}):(\d{2}):(\d{2})\]\([^)]*\?t=(\d+)\)")
+    links = pattern.findall(generated_note_content)
+    assert len(links) >= 1, "Aucun lien [▶ HH:MM:SS](?t=N) trouvé dans la fiche"
+    for h, m, s, t in links:
+        expected = int(h) * 3600 + int(m) * 60 + int(s)
+        assert int(t) == expected, (
+            f"Incohérence timestamp : [▶ {h}:{m}:{s}](?t={t}) — attendu ?t={expected}"
+        )

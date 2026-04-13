@@ -74,7 +74,13 @@ Direct quotes from the transcript, reproduced verbatim — never paraphrased.
 
 Format:
 > "Exact quote as spoken"
-> [▶ HH:MM:SS](link)
+> [▶ HH:MM:SS](https://youtu.be/{video_id}?t=SECONDS)
+
+Timestamp rules:
+- Copy HH:MM:SS VERBATIM from the transcript line where the quote appears.
+  Do NOT reformat. If the transcript shows [00:01:24], write 00:01:24 — not 01:24:00.
+- Compute SECONDS as: HH × 3600 + MM × 60 + SS.
+  Example: 00:01:24 → ?t=84. Example: 01:24:00 → ?t=5040.
 
 ### 7. Open questions
 ## Questions ouvertes
@@ -130,9 +136,11 @@ write exactly "Aucune source identifiée."
 6. The sources section contains only items from {description}, never invented references.
 7. Every inference (thesis sentence, argumentative transition, concept definition, open question) must be anchorable to a transcript segment. If no anchor exists: omit or mark [implicite]. Never approximate.
 8. Never invent a URL for sources. Sources come exclusively from {description}. If a source has no URL in {description}, list it without a URL. Never use the video URL as a source URL.
+9. In every [▶ HH:MM:SS](url?t=SECONDS) link: copy HH:MM:SS verbatim from the transcript line — do NOT reformat. Compute SECONDS as HH×3600 + MM×60 + SS. Inconsistency between display and ?t= value is a critical error.
 
 IMPORTANT: Do NOT include section 10 (transcript). It will be appended automatically after your response.\
 """
+# NOTE: Absolute rules 7-8 above mirror SPECS.md § "Absolute rules" — update both files when changing these.
 
 
 def build_system_prompt(

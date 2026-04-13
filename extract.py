@@ -102,14 +102,29 @@ def main():
 
             _, warnings = validate_note(note)
 
-            sp.text = "Écriture dans le vault..."
             file_path = build_file_path(
                 config,
                 metadata["channel"],
                 metadata["upload_date"],
                 metadata["title"],
             )
-            result_path = write_note(file_path, note, warnings)
+
+            overwrite = False
+            if file_path.exists():
+                sp.stop()
+                try:
+                    answer = input(f"Ce fichier existe déjà : {file_path}\nÉcraser ? (o/N) ")
+                except (EOFError, KeyboardInterrupt):
+                    print("\nAnnulé.", file=sys.stderr)
+                    sys.exit(1)
+                if answer.strip().lower() not in ("o", "oui", "y", "yes"):
+                    print("Écriture annulée par l'utilisateur.")
+                    sys.exit(0)
+                overwrite = True
+                sp.start()
+
+            sp.text = "Écriture dans le vault..."
+            result_path = write_note(file_path, note, warnings, overwrite=overwrite)
 
             sp.ok("✓")
         except Exception as e:
