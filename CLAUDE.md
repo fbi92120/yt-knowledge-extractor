@@ -104,7 +104,16 @@ PLAN.md décrit la séquence réellement exécutée sur ce projet.
 ## Signal d'alarme
 
 Si un cas non couvert par les specs est rencontré :
-
 > 🚨 SPEC MANQUANTE : [description précise]
-
 Stopper et attendre une instruction explicite. Ne pas improviser.
+
+**Règle absolue — gap détecté en production**
+Tout gap détecté suit ce flux obligatoire :
+1. Signaler : 🚨 SPEC MANQUANTE : [description précise]
+2. Stopper — ne pas implémenter
+3. Attendre validation dans Claude.ai
+4. Recevoir l'instruction de mise à jour des specs
+5. Implémenter uniquement après confirmation
+
+Un gap implémenté sans mise à jour des specs préalable
+est une dette de spec silencieuse.

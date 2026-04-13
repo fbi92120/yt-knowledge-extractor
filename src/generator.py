@@ -22,7 +22,7 @@ in {output_language}.
 
 ### 1. Header (do not label this section)
 # [Video title]
-**URL** : {url} · **Channel** : {channel} · **Processed** : {date} · **Duration** : {duration}
+**URL** : {url} · **Channel** : {channel} · **Processed** : {date} · **Duration** : {duration} · **Model** : {model}
 
 ### 2. Central thesis
 ## Thèse centrale
@@ -70,9 +70,17 @@ Format:
 
 ### 7. Open questions
 ## Questions ouvertes
-2 to 3 questions raised by the video but left unanswered.
-These are intellectual tensions, implications, or "what next?" questions
-the content surfaces — not comprehension questions about what was said.
+
+### Soulevées dans la vidéo
+Questions explicitly raised or left unanswered by the author.
+Each question must reference the transcript segment where the tension appears: [▶ HH:MM:SS](link)
+No anchor identifiable : omit.
+
+### Ouvertures suggérées
+*(inférence — marked explicitly as such)*
+Implications or "what next?" questions the content surfaces beyond what the author states.
+These are interpretive — label each one with [inférence].
+Never project from assumed user profile or topic category.
 
 ### 8. Personal notes
 ## Mes notes
@@ -116,6 +124,7 @@ def build_system_prompt(
     video_id: str,
     chapters: list[dict] | None,
     description: str,
+    model: str,
 ) -> str:
     """Construit le prompt système depuis le template SPECS.md Bloc 3."""
     chapters_str = "None (infer from content)" if not chapters else str(chapters)
@@ -128,6 +137,7 @@ def build_system_prompt(
         video_id=video_id,
         chapters=chapters_str,
         description=description,
+        model=model,
     )
 
 
@@ -177,6 +187,7 @@ def generate_note(
         video_id=video_id,
         chapters=metadata["chapters"],
         description=metadata["description"],
+        model=llm_config["model"],
     )
 
     user_prompt = build_user_prompt(formatted_transcript, filtered_sources)

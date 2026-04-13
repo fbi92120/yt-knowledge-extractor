@@ -1,9 +1,9 @@
 # SPECS.md — YT Knowledge Extractor
 
-**Version** : 1.0  
-**Date** : 2026-04-05  
+**Version** : 1.1  
+**Date** : 2026-04-11  
 **Auteur** : François Biller  
-**Statut** : Validé — prêt pour implémentation  
+**Statut** : Validé — amendements qualité prompt intégrés  
 **Repo** : https://github.com/fbi92120/yt-knowledge-extractor  
 **Chaîne de test** : [@SamouraiDansant](https://www.youtube.com/@SamouraiDansant)
 
@@ -21,6 +21,7 @@
 6. **Lecture complète avant structuration** — le transcript complet est envoyé au LLM en une seule fois. Pas de traitement par morceaux qui fragmenterait la cohérence globale.
 7. **Fiche incomplète signalée** — si la fiche générée ne respecte pas les minimums (chapitrage < 6 blocs, < 3 concepts), elle est sauvegardée avec un avertissement visible en tête de fichier.
 8. **Contexte insuffisant bloquant** — si le modèle configuré ne peut pas accueillir le transcript complet, le script bloque avec un message explicite. Il ne tronque pas silencieusement.
+9. **Déduction ancrée uniquement** — toute inférence (thèse, transition argumentative, définition, question ouverte) doit pouvoir être rattachée à un segment identifiable du transcript. Si l'ancre n'existe pas : omission ou marquage explicite `[implicite]`. Jamais d'approximation.
 
 ---
 
@@ -181,12 +182,15 @@ in {output_language}.
 
 ### 1. Header (do not label this section)
 # [Video title]
-**URL** : {url} · **Channel** : {channel} · **Processed** : {date} · **Duration** : {duration}
+**URL** : {url} · **Channel** : {channel} · **Processed** : {date} · **Duration** : {duration} · **Model** : {model}
 
 ### 2. Central thesis
 ## Thèse centrale
 3 to 5 sentences. What is the video's main argument or position?
 What idea does the author defend from start to finish?
+
+Each sentence must reflect a position explicitly stated in this transcript.
+A thesis that could describe another video on the same topic is a failure.
 
 ### 3. Inferred chapter breakdown
 ## Chapitrage inféré
@@ -207,12 +211,18 @@ Include inline timestamps at key transitions: [▶ HH:MM:SS](link)
 Show the logical progression: what the author starts from,
 what tension or problem is identified, how it is resolved or concluded.
 
+Every argumentative transition must carry a timestamp anchor.
+A transition without an identifiable timestamp must be omitted.
+The timestamp is not a navigation aid — it is the truth criterion for this section.
+
 ### 5. Key concepts
 ## Concepts clés
 For each significant concept identified in the video:
 
 #### [Concept name] [▶ HH:MM:SS](link)
 **Définition selon l'auteur** : how the author defines it in their own words — never a generic definition.
+The definition must quote or closely paraphrase the author's own words at the referenced timestamp.
+If the author never defines the concept explicitly, mark it as [implicite] and describe usage only.
 **Exemple utilisé** : the specific example the author uses to illustrate the concept.
 
 Minimum 3 concepts required.
@@ -229,9 +239,17 @@ Format:
 
 ### 7. Open questions
 ## Questions ouvertes
-2 to 3 questions raised by the video but left unanswered.
-These are intellectual tensions, implications, or "what next?" questions
-the content surfaces — not comprehension questions about what was said.
+
+### Soulevées dans la vidéo
+Questions explicitly raised or left unanswered by the author.
+Each question must reference the transcript segment where the tension appears: [▶ HH:MM:SS](link)
+No anchor identifiable : omit.
+
+### Ouvertures suggérées
+*(inférence — marked explicitly as such)*
+Implications or "what next?" questions the content surfaces beyond what the author states.
+These are interpretive — label each one with [inférence].
+Never project from assumed user profile or topic category.
 
 ### 8. Personal notes
 ## Mes notes
@@ -268,6 +286,7 @@ Format: [HH:MM:SS] text
 4. Do not generate any content for "Mes notes". Leave it empty.
 5. Read the full transcript before structuring. Do not process by chunks.
 6. The sources section contains only items from {description}, never invented references.
+7. Every inference (thesis sentence, argumentative transition, concept definition, open question) must be anchorable to a transcript segment. If no anchor exists: omit or mark [implicite]. Never approximate.
 ```
 
 ---
@@ -285,6 +304,7 @@ Format: [HH:MM:SS] text
 | Erreur API LLM | Erreur terminal avec code HTTP. Aucun fichier créé. |
 | Vidéo privée ou supprimée | Erreur terminal. Aucun fichier créé. |
 | Fichier déjà existant | Demande de confirmation : *"Ce fichier existe déjà : [chemin]. Écraser ? (o/N)"* Aucune action sans confirmation explicite. |
+| Régénération après changement de specs | Archiver les fiches existantes dans `[vault_path]/[chaîne]/v1/` avant régénération. Les nouvelles fiches suivent les specs courantes. Les fiches archivées servent de référence pour la validation sur échantillon. |
 | Description YouTube vide | Section sources affiche "Aucune source identifiée." sans erreur. |
 
 ---
@@ -314,15 +334,43 @@ python extract.py https://youtu.be/T_GqhyYqTD4
 - [ ] Le transcript complet est présent après le séparateur `---`
 - [ ] Au moins 1 lien `?t=` est valide (format numérique en secondes)
 
+### Validation avant régénération en batch
+
+Avant toute régénération en batch (changement de prompt,
+changement de provider, mise à jour de specs) :
+
+1. Sélectionner 5 à 10 fiches représentatives
+   (densités conceptuelles variées, durées différentes)
+2. Régénérer cet échantillon avec la nouvelle version
+3. Appliquer la checklist de relecture humaine sur chaque fiche
+4. Critères pour généraliser :
+   - Les biais cibles ont disparu
+   - Aucun nouveau biais n'est apparu
+   - La structure V1.1 est respectée sur toutes les fiches
+5. Si un critère échoue : itérer sur les specs avant de généraliser
+
+Toute régénération en batch sans validation sur échantillon
+est une dette de contrôle différée.
+
+**Procédure d'archivage avant régénération**
+
+Avant de régénérer des fiches existantes avec une nouvelle version de specs :
+1. Déplacer les fiches existantes dans `[vault_path]/[chaîne]/v1/`
+2. Régénérer l'échantillon de validation (5 à 10 fiches)
+3. Comparer côte à côte `v1/` et les nouvelles fiches dans Obsidian
+4. Si validation réussie : régénérer le reste
+5. Le sous-dossier `v1/` peut être supprimé une fois la migration validée
+
 ### Checklist de relecture humaine
 
-Après chaque génération, 5 questions à se poser avant de valider la fiche :
+Après chaque génération, 6 questions à se poser avant de valider la fiche :
 
 1. **Thèse centrale** : reflète-elle vraiment la position de l'auteur — ou est-ce une reformulation générique qui pourrait s'appliquer à n'importe quelle vidéo sur le même sujet ?
 2. **Chapitrage** : les timestamps correspondent-ils à des transitions réelles dans la vidéo ? Vérifier 2-3 liens au hasard.
 3. **Concepts** : les définitions sont-elles celles de l'auteur, ou des définitions Wikipedia reformulées ?
 4. **Citations** : les formulations notables sont-elles mot pour mot, ou légèrement paraphrasées ?
-5. **Questions ouvertes** : sont-elles intellectuellement honnêtes — ou des questions rhétoriques avec réponse implicite dans le texte ?
+5. **Questions ouvertes** : les questions "Soulevées dans la vidéo" ont-elles toutes un timestamp anchor ? Les "Ouvertures suggérées" sont-elles marquées [inférence] et libres de projection sur le profil utilisateur ?
+6. **Thèse centrale** : chaque phrase pourrait-elle s'appliquer à une autre vidéo sur le même sujet sans être fausse ? Si oui — reformuler depuis le transcript.
 
 ---
 
@@ -332,7 +380,7 @@ Après chaque génération, 5 questions à se poser avant de valider la fiche :
 
 ```markdown
 # [Titre de la vidéo]
-**URL** : https://youtu.be/XXXX · **Channel** : Nom de la chaîne · **Processed** : 2026-04-05 · **Duration** : 45:12
+**URL** : https://youtu.be/XXXX · **Channel** : Nom de la chaîne · **Processed** : 2026-04-05 · **Duration** : 45:12 · **Model** : gemini-2.5-flash
 
 ## Thèse centrale
 3 à 5 phrases. La position défendue, l'idée directrice de bout en bout.
@@ -359,8 +407,12 @@ pour aboutir à [conclusion] [▶ 00:38:10](lien).
 > [▶ 00:18:22](https://youtu.be/XXXX?t=1102)
 
 ## Questions ouvertes
-1. Question soulevée par la vidéo sans réponse donnée.
-2. Tension ou implication non résolue.
+
+### Soulevées dans la vidéo
+1. Question explicitement posée ou laissée sans réponse. [▶ 00:22:10](lien)
+
+### Ouvertures suggérées
+1. [inférence] Implication ou tension au-delà de ce que dit l'auteur.
 
 ## Mes notes
 *(espace libre)*
@@ -377,5 +429,6 @@ pour aboutir à [conclusion] [▶ 00:38:10](lien).
 
 ---
 
-*Fin des spécifications V1.0*  
+*Fin des spécifications V1.1*  
+*Amendements : règle 9 Bloc 0 + contraintes Bloc 3 sections déductives (thèse, carte, concepts, questions)*  
 *Document suivant : `README.md` — installation et usage*

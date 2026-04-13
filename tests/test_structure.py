@@ -10,6 +10,8 @@ Vérifications (SPECS.md Bloc 5) :
 5. Section "Mes notes" vide (placeholder uniquement)
 6. Transcript complet présent après ---
 7. Au moins 1 lien ?t= valide
+8. Sous-sections 'Questions ouvertes' présentes
+   (### Soulevées dans la vidéo et ### Ouvertures suggérées)
 """
 
 import re
@@ -37,7 +39,7 @@ def test_minimum_concepts(generated_note_content):
 
 def test_notable_formulations(generated_note_content):
     """Au moins 1 formulation notable est présente."""
-    quotes = re.findall(r'^>\s*"', generated_note_content, re.MULTILINE)
+    quotes = re.findall(r'^>\s*["\u00ab]', generated_note_content, re.MULTILINE)
     assert len(quotes) >= 1, "Aucune formulation notable détectée"
 
 
@@ -65,3 +67,11 @@ def test_valid_timestamp_links(generated_note_content):
     """Au moins 1 lien ?t= avec un format numérique valide."""
     links = re.findall(r"\?t=(\d+)", generated_note_content)
     assert len(links) >= 1, "Aucun lien horodaté (?t=) détecté"
+
+
+def test_open_questions_subsections(generated_note_content):
+    """Les deux sous-sections de 'Questions ouvertes' sont présentes."""
+    assert "### Soulevées dans la vidéo" in generated_note_content, \
+        "Sous-section manquante : '### Soulevées dans la vidéo'"
+    assert "### Ouvertures suggérées" in generated_note_content, \
+        "Sous-section manquante : '### Ouvertures suggérées'"

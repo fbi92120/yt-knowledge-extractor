@@ -25,17 +25,17 @@ REFERENCE_URL = "https://youtu.be/T_GqhyYqTD4"
 @pytest.fixture(scope="session")
 def generated_note_path(tmp_path_factory):
     """Lance le pipeline complet sur l'URL de référence et retourne le Path du fichier."""
-    api_key = os.environ.get("GEMINI_API_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
-        pytest.skip("GEMINI_API_KEY non définie — smoke test sauté")
+        pytest.skip("ANTHROPIC_API_KEY non définie — smoke test sauté")
 
     tmpdir = tmp_path_factory.mktemp("yt_output")
 
     config = {
         "transcript_language": "fr",
         "llm": {
-            "provider": "gemini",
-            "model": "gemini-2.5-flash",
+            "provider": "anthropic",
+            "model": "claude-haiku-4-5",
             "api_key": api_key,
         },
         "output": {
