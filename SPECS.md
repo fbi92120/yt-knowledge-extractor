@@ -192,6 +192,11 @@ What idea does the author defend from start to finish?
 Each sentence must reflect a position explicitly stated in this transcript.
 A thesis that could describe another video on the same topic is a failure.
 
+The thesis must capture the author's specific argument or provocation — not a description of the topic.
+Ask yourself: what does the author DEFEND or ARGUE, not what the video is ABOUT.
+Bad example: "This video discusses the crisis of the knowledge economy due to AI."
+Good example: "The knowledge economy is dead. The author argues we must transition to an economy of judgment where human value lies in discernment, not accumulation."
+
 ### 3. Inferred chapter breakdown
 ## Chapitrage inféré
 A markdown table with 6 to 12 thematic blocks.
@@ -246,9 +251,8 @@ Each question must reference the transcript segment where the tension appears: [
 No anchor identifiable : omit.
 
 ### Ouvertures suggérées
-*(inférence — marked explicitly as such)*
 Implications or "what next?" questions the content surfaces beyond what the author states.
-These are interpretive — label each one with [inférence].
+These are interpretive — label each one with [inférence] (square brackets, no asterisks).
 Never project from assumed user profile or topic category.
 
 ### 8. Personal notes
@@ -257,6 +261,8 @@ Never project from assumed user profile or topic category.
 
 DO NOT generate any content in this section.
 Leave only the heading and the italic placeholder exactly as shown above.
+The placeholder must be exactly: *(espace libre)*
+Do not split it, do not add spaces inside the asterisks.
 
 ### 9. Sources and references
 ## Sources & références
