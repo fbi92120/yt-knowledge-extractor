@@ -1,0 +1,22 @@
+# Langue du transcript à extraire
+transcript_language: fr
+
+# Provider LLM : gemini | groq | anthropic | openai | ollama
+#
+# Provider par défaut : Gemini (Google AI Studio).
+# Recommandé car le free tier accepte des transcripts longs (fenêtre 1M tokens,
+# contrairement à Groq dont le free tier plafonne à ~6k tokens par requête,
+# ce qui rend inutilisable toute vidéo de plus de ~5 minutes).
+llm:
+  provider: gemini
+  model: gemini-2.0-flash
+  api_key_env: GEMINI_API_KEY    # nom de la variable dans .env
+
+# Destination des fiches générées
+output:
+  mode: obsidian               # obsidian | local
+  vault_path: /Users/fbi/Library/Mobile Documents/iCloud~md~obsidian/Documents/YT-Knowledge
+  local_path: ./output         # utilisé si mode: local
+
+# Langue de la fiche générée
+output_language: fr
