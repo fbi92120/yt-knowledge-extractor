@@ -1,9 +1,9 @@
 # SPECS.md — YT Knowledge Extractor
 
-**Version** : 1.3  
-**Date** : 2026-04-13 15:00  
+**Version** : 1.4  
+**Date** : 2026-04-14 00:00  
 **Auteur** : François Biller  
-**Statut** : Validé — correction timestamps formulations notables (règle 9)  
+**Statut** : Validé — batch-url, mode dry-run, archivage v1/  
 **Repo** : https://github.com/fbi92120/yt-knowledge-extractor  
 **Chaîne de test** : [@SamouraiDansant](https://www.youtube.com/@SamouraiDansant)
 
@@ -35,16 +35,36 @@ Conçu pour un usage personnel d'abord, installable par d'autres utilisateurs vi
 
 ### Périmètre MVP (V1)
 
-- Traitement d'une seule vidéo à la fois
-- Interface CLI : `python extract.py [URL]`
+- Traitement unitaire ou en batch (fichier .txt d'URLs)
+- Interface CLI : `python extract.py [URL | fichier.txt] [--dry-run]`
 - Transcript via sous-titres YouTube (pas de transcription audio)
-- Génération de fiche via LLM (Groq par défaut, gratuit)
+- Génération de fiche via LLM (Gemini par défaut, gratuit)
 - Sauvegarde Markdown dans vault Obsidian ou dossier local
 - Configuration via `config.yml` et `.env` — aucun chemin ou clé hardcodé
 
+### Mode batch — format fichier
+
+```
+# model: gemini-2.5-flash        ← modèle par défaut (optionnel)
+https://youtu.be/xxxx             ← utilise le modèle par défaut
+https://youtu.be/yyyy model=claude-haiku-4-5  ← surcharge par URL
+# commentaire ignoré
+                                  ← ligne vide ignorée
+```
+
+Priorité modèle : ligne URL > `# model:` fichier > `config.yml`
+
+Comportement par URL :
+1. Vérifier si la fiche existe déjà dans le vault
+2. Si oui → archiver dans `[dossier chaîne]/v1/` avant régénération
+3. Générer la fiche avec le modèle résolu
+4. Logger le résultat ligne par ligne
+
+Option `--dry-run` : liste les URLs et le modèle résolu sans générer ni archiver.
+Acceptée dans les deux ordres : `extract.py file.txt --dry-run` et `extract.py --dry-run file.txt`.
+
 ### Hors scope V1
 
-- Traitement en batch de plusieurs vidéos
 - Interface graphique ou web
 - Recherche cross-vidéos (V2)
 - Multi-utilisateurs simultanés (V3 SaaS)
