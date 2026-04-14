@@ -25,3 +25,7 @@ build/
 .DS_Store
 Thumbs.db
 config.yml.save
+
+# Fiches générées localement (non versionnées)
+fiche*.md
+fiche*.Md

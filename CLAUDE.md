@@ -101,6 +101,17 @@ la méthode a été extraite a posteriori.
 
 PLAN.md décrit la séquence réellement exécutée sur ce projet.
 
+## Conventions de branches
+
+Pour les features significatives :
+- Créer une branche : `git checkout -b feature/nom-feature`
+- Travailler sur la branche
+- Lancer `/review` sur la branche avant de merger
+- Merger sur main via PR ou `git merge`
+
+Pour les corrections mineures et hotfixes :
+- Commit direct sur main acceptable
+
 ## Gestion des documents de spec
 
 Tout document de spec modifié inclut la date ET l'heure de dernière
