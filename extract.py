@@ -126,6 +126,8 @@ def _run_single(config: dict, url: str) -> None:
 
 def _run_batch(config: dict, batch_path: Path, dry_run: bool) -> None:
     """Pipeline batch depuis un fichier d'URLs."""
+    from datetime import datetime
+
     try:
         file_default_model, entries = parse_batch_file(batch_path)
     except FileNotFoundError:
@@ -138,64 +140,88 @@ def _run_batch(config: dict, batch_path: Path, dry_run: bool) -> None:
 
     total = len(entries)
     config_model = config["llm"]["model"]
+    # Modèle affiché en tête : priorité fichier > config
+    display_model = file_default_model or config_model
 
     if dry_run:
-        print(f"[DRY-RUN] {total} URL(s) à traiter\n")
+        print(f"[DRY-RUN] {total} URL(s) à traiter — modèle : {display_model}\n")
         for i, entry in enumerate(entries, 1):
             model = resolve_model(entry.model, file_default_model, config_model)
-            print(f"[{i}/{total}] {entry.url}")
-            print(f"  Modèle : {model}")
+            if entry.model:
+                print(f"[{i}/{total}] {entry.url} — modèle : {model}")
+            else:
+                print(f"[{i}/{total}] {entry.url}")
         return
 
     successes = 0
     failures = 0
     archived = 0
 
-    for i, entry in enumerate(entries, 1):
-        model = resolve_model(entry.model, file_default_model, config_model)
-        print(f"[{i}/{total}] {entry.url}... ({model})")
+    now = datetime.now()
+    log_name = f"batch-{now.strftime('%Y-%m-%d-%H-%M')}.log"
+    log_path = batch_path.parent / log_name
 
-        try:
-            video_id = extract_video_id(entry.url)
-        except ValueError as e:
-            print(f"  ✗ URL invalide : {e}")
-            failures += 1
-            continue
+    print(f"[BATCH] {total} URL(s) — modèle : {display_model}\n")
 
-        entry_config = {**config, "llm": {**config["llm"], "model": model}}
+    with open(log_path, "w", encoding="utf-8") as log:
+        log.write(f"# Batch log — {now.strftime('%Y-%m-%d %H:%M')}\n")
+        log.write(f"# model: {display_model}\n\n")
 
-        try:
-            metadata = fetch_metadata(entry.url)
-            language = config.get("transcript_language", "fr")
-            segments, _ = fetch_transcript(video_id, language)
-            formatted_transcript = format_transcript_for_prompt(segments)
+        for i, entry in enumerate(entries, 1):
+            model = resolve_model(entry.model, file_default_model, config_model)
+            if entry.model:
+                print(f"[{i}/{total}] {entry.url} — modèle : {model}")
+            else:
+                print(f"[{i}/{total}] {entry.url}")
 
-            note = generate_note(
-                entry_config, video_id, entry.url, metadata, segments, formatted_transcript
-            )
-            _, warnings = validate_note(note)
+            try:
+                video_id = extract_video_id(entry.url)
+            except ValueError as e:
+                print(f"  ✗ URL invalide : {e}")
+                log.write(f"✗ {entry.url} → Erreur : {e}\n")
+                failures += 1
+                continue
 
-            file_path = build_file_path(
-                entry_config,
-                metadata["channel"],
-                metadata["upload_date"],
-                metadata["title"],
-            )
+            entry_config = {**config, "llm": {**config["llm"], "model": model}}
 
-            archive_path = archive_existing(file_path)
-            if archive_path:
-                print(f"  → Archivée : {archive_path}")
-                archived += 1
+            try:
+                metadata = fetch_metadata(entry.url)
+                language = config.get("transcript_language", "fr")
+                segments, _ = fetch_transcript(video_id, language)
+                formatted_transcript = format_transcript_for_prompt(segments)
 
-            write_note(file_path, note, warnings, overwrite=False)
-            print(f"  ✓ Créé : {file_path}")
-            successes += 1
+                note = generate_note(
+                    entry_config, video_id, entry.url, metadata, segments, formatted_transcript
+                )
+                _, warnings = validate_note(note)
 
-        except Exception as e:
-            print(f"  ✗ Erreur : {e}")
-            failures += 1
+                file_path = build_file_path(
+                    entry_config,
+                    metadata["channel"],
+                    metadata["upload_date"],
+                    metadata["title"],
+                )
+
+                archive_path = archive_existing(file_path)
+                archived_tag = ""
+                if archive_path:
+                    archived += 1
+                    archived_tag = " [archivée v1]"
+
+                write_note(file_path, note, warnings, overwrite=False)
+                print(f"  ✓ {file_path}")
+                log.write(f"✓ {entry.url} → {file_path}{archived_tag}\n")
+                successes += 1
+
+            except Exception as e:
+                print(f"  ✗ Erreur : {e}")
+                log.write(f"✗ {entry.url} → Erreur : {e}\n")
+                failures += 1
+
+        log.write(f"\n# Résumé : {successes} succès, {failures} échec(s), {archived} archivée(s)\n")
 
     print(f"\nRésumé : {successes} succès, {failures} échec(s), {archived} archivée(s)")
+    print(f"Log : {log_path}")
 
 
 def main():

@@ -1,9 +1,9 @@
 # SPECS.md — YT Knowledge Extractor
 
-**Version** : 1.4  
-**Date** : 2026-04-14 00:00  
+**Version** : 1.5  
+**Date** : 2026-04-14 10:00  
 **Auteur** : François Biller  
-**Statut** : Validé — batch-url, mode dry-run, archivage v1/  
+**Statut** : Validé — batch : affichage compact, log fichier  
 **Repo** : https://github.com/fbi92120/yt-knowledge-extractor  
 **Chaîne de test** : [@SamouraiDansant](https://www.youtube.com/@SamouraiDansant)
 
@@ -62,6 +62,19 @@ Comportement par URL :
 
 Option `--dry-run` : liste les URLs et le modèle résolu sans générer ni archiver.
 Acceptée dans les deux ordres : `extract.py file.txt --dry-run` et `extract.py --dry-run file.txt`.
+
+Fichier log généré automatiquement en mode réel : `batch-YYYY-MM-DD-HH-MM.log`
+dans le même répertoire que le fichier batch. Format :
+```
+# Batch log — 2026-04-14 09:15
+# model: gemini-2.5-flash
+
+✓ https://youtu.be/xxx → chemin/fiche.md
+✓ https://youtu.be/yyy → chemin/fiche.md [archivée v1]
+✗ https://youtu.be/zzz → Erreur : message
+
+# Résumé : N succès, N échec(s), N archivée(s)
+```
 
 ### Hors scope V1
 

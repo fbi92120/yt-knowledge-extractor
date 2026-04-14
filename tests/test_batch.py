@@ -288,7 +288,6 @@ def test_run_batch_archives_existing_file(tmp_path, capsys):
     batch_file = tmp_path / "urls.txt"
     batch_file.write_text("https://youtu.be/AAA\n", encoding="utf-8")
 
-    # Fichier existant simulé
     existing = tmp_path / "testchannel" / "2024-01-01-test-video.md"
     existing.parent.mkdir(parents=True)
     existing.write_text("ancienne fiche", encoding="utf-8")
@@ -304,9 +303,160 @@ def test_run_batch_archives_existing_file(tmp_path, capsys):
         extract._run_batch(_DUMMY_CONFIG, batch_file, dry_run=False)
 
     captured = capsys.readouterr()
-    assert "Archivée" in captured.out
+    # "[archivée v1]" est dans le log, pas dans le terminal
     assert (existing.parent / "v1" / existing.name).exists()
     assert "1 archivée" in captured.out
+
+
+def test_run_batch_log_created(tmp_path, capsys):
+    """Un fichier batch-*.log est créé dans le même dossier que le fichier batch."""
+    import extract
+
+    batch_file = tmp_path / "urls.txt"
+    batch_file.write_text("not-a-url\n", encoding="utf-8")
+
+    extract._run_batch(_DUMMY_CONFIG, batch_file, dry_run=False)
+
+    logs = list(tmp_path.glob("batch-*.log"))
+    assert len(logs) == 1
+
+
+def test_run_batch_log_header(tmp_path, capsys):
+    """Le log contient l'en-tête avec date et modèle."""
+    import extract
+
+    batch_file = tmp_path / "urls.txt"
+    batch_file.write_text("# model: gemini-2.5-flash\nnot-a-url\n", encoding="utf-8")
+
+    extract._run_batch(_DUMMY_CONFIG, batch_file, dry_run=False)
+
+    log = next(tmp_path.glob("batch-*.log"))
+    content = log.read_text(encoding="utf-8")
+    assert "# Batch log —" in content
+    assert "# model: gemini-2.5-flash" in content
+
+
+def test_run_batch_log_failure_entry(tmp_path, capsys):
+    """Le log contient ✗ pour les URLs en échec."""
+    import extract
+
+    batch_file = tmp_path / "urls.txt"
+    batch_file.write_text("not-a-url\n", encoding="utf-8")
+
+    extract._run_batch(_DUMMY_CONFIG, batch_file, dry_run=False)
+
+    log = next(tmp_path.glob("batch-*.log"))
+    content = log.read_text(encoding="utf-8")
+    assert "✗ not-a-url → Erreur" in content
+
+
+def test_run_batch_log_success_entry(tmp_path, capsys):
+    """Le log contient ✓ + chemin pour les URLs traitées avec succès."""
+    import extract
+
+    batch_file = tmp_path / "urls.txt"
+    batch_file.write_text("https://youtu.be/AAA\n", encoding="utf-8")
+    note_path = tmp_path / "note.md"
+
+    with (
+        patch("extract.fetch_metadata", return_value=_DUMMY_METADATA),
+        patch("extract.fetch_transcript", return_value=([], "fr")),
+        patch("extract.format_transcript_for_prompt", return_value=""),
+        patch("extract.generate_note", return_value="fiche"),
+        patch("extract.validate_note", return_value=(True, [])),
+        patch("extract.build_file_path", return_value=note_path),
+        patch("extract.write_note"),
+    ):
+        extract._run_batch(_DUMMY_CONFIG, batch_file, dry_run=False)
+
+    log = next(tmp_path.glob("batch-*.log"))
+    content = log.read_text(encoding="utf-8")
+    assert "✓ https://youtu.be/AAA →" in content
+
+
+def test_run_batch_log_archived_tag(tmp_path, capsys):
+    """Le log contient [archivée v1] pour les fiches archivées."""
+    import extract
+
+    batch_file = tmp_path / "urls.txt"
+    batch_file.write_text("https://youtu.be/AAA\n", encoding="utf-8")
+
+    existing = tmp_path / "testchannel" / "2024-01-01-test-video.md"
+    existing.parent.mkdir(parents=True)
+    existing.write_text("ancienne fiche", encoding="utf-8")
+
+    with (
+        patch("extract.fetch_metadata", return_value=_DUMMY_METADATA),
+        patch("extract.fetch_transcript", return_value=([], "fr")),
+        patch("extract.format_transcript_for_prompt", return_value=""),
+        patch("extract.generate_note", return_value="nouvelle fiche"),
+        patch("extract.validate_note", return_value=(True, [])),
+        patch("extract.build_file_path", return_value=existing),
+    ):
+        extract._run_batch(_DUMMY_CONFIG, batch_file, dry_run=False)
+
+    log = next(tmp_path.glob("batch-*.log"))
+    content = log.read_text(encoding="utf-8")
+    assert "[archivée v1]" in content
+
+
+def test_run_batch_log_summary_line(tmp_path, capsys):
+    """Le log se termine par la ligne # Résumé."""
+    import extract
+
+    batch_file = tmp_path / "urls.txt"
+    batch_file.write_text("not-a-url\n", encoding="utf-8")
+
+    extract._run_batch(_DUMMY_CONFIG, batch_file, dry_run=False)
+
+    log = next(tmp_path.glob("batch-*.log"))
+    content = log.read_text(encoding="utf-8")
+    assert "# Résumé :" in content
+
+
+def test_dry_run_model_in_header_not_per_line(tmp_path, capsys):
+    """En dry-run, le modèle par défaut est en tête — pas répété sous chaque URL."""
+    import extract
+
+    batch_file = tmp_path / "urls.txt"
+    batch_file.write_text(
+        "# model: gemini-2.5-flash\nhttps://youtu.be/AAA\nhttps://youtu.be/BBB\n",
+        encoding="utf-8",
+    )
+
+    extract._run_batch(_DUMMY_CONFIG, batch_file, dry_run=True)
+    captured = capsys.readouterr()
+
+    # Modèle dans le header
+    assert "modèle : gemini-2.5-flash" in captured.out
+    # Pas de ligne "Modèle : xxx" sous chaque URL (les URLs sans override n'ont pas de ligne modèle)
+    lines = captured.out.splitlines()
+    url_lines = [l for l in lines if "youtu.be/AAA" in l or "youtu.be/BBB" in l]
+    for line in url_lines:
+        assert "modèle" not in line
+
+
+def test_dry_run_model_inline_for_override(tmp_path, capsys):
+    """En dry-run, le modèle est affiché en ligne uniquement si surcharge par URL."""
+    import extract
+
+    batch_file = tmp_path / "urls.txt"
+    batch_file.write_text(
+        "# model: gemini-2.5-flash\n"
+        "https://youtu.be/AAA\n"
+        "https://youtu.be/BBB model=claude-haiku-4-5\n",
+        encoding="utf-8",
+    )
+
+    extract._run_batch(_DUMMY_CONFIG, batch_file, dry_run=True)
+    captured = capsys.readouterr()
+
+    lines = captured.out.splitlines()
+    aaa_line = next(l for l in lines if "youtu.be/AAA" in l)
+    bbb_line = next(l for l in lines if "youtu.be/BBB" in l)
+
+    assert "modèle" not in aaa_line          # pas de surcharge → pas de modèle inline
+    assert "claude-haiku-4-5" in bbb_line    # surcharge → modèle inline
 
 
 # ---------------------------------------------------------------------------
