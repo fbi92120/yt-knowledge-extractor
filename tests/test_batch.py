@@ -27,34 +27,34 @@ def _write(tmp_path: Path, content: str) -> Path:
 
 def test_parse_empty_file(tmp_path):
     f = _write(tmp_path, "")
-    default_model, entries = parse_batch_file(f)
+    default_model, _, entries = parse_batch_file(f)
     assert default_model is None
     assert entries == []
 
 
 def test_parse_blank_lines_only(tmp_path):
     f = _write(tmp_path, "\n\n   \n")
-    _, entries = parse_batch_file(f)
+    _, _, entries = parse_batch_file(f)
     assert entries == []
 
 
 def test_parse_comments_only(tmp_path):
     f = _write(tmp_path, "# commentaire\n# autre commentaire\n")
-    default_model, entries = parse_batch_file(f)
+    default_model, _, entries = parse_batch_file(f)
     assert default_model is None
     assert entries == []
 
 
 def test_parse_model_directive(tmp_path):
     f = _write(tmp_path, "# model: gemini-2.5-flash\n")
-    default_model, entries = parse_batch_file(f)
+    default_model, _, entries = parse_batch_file(f)
     assert default_model == "gemini-2.5-flash"
     assert entries == []
 
 
 def test_parse_comment_without_model_directive_ignored(tmp_path):
     f = _write(tmp_path, "# ceci est un commentaire ordinaire\n")
-    default_model, _ = parse_batch_file(f)
+    default_model, _, _ = parse_batch_file(f)
     assert default_model is None
 
 
@@ -69,7 +69,7 @@ def test_parse_file_not_found(tmp_path):
 
 def test_parse_url_no_model(tmp_path):
     f = _write(tmp_path, "https://youtu.be/ABC123\n")
-    _, entries = parse_batch_file(f)
+    _, _, entries = parse_batch_file(f)
     assert len(entries) == 1
     assert entries[0].url == "https://youtu.be/ABC123"
     assert entries[0].model is None
@@ -77,7 +77,7 @@ def test_parse_url_no_model(tmp_path):
 
 def test_parse_url_with_model_override(tmp_path):
     f = _write(tmp_path, "https://youtu.be/ABC123 model=claude-haiku-4-5\n")
-    _, entries = parse_batch_file(f)
+    _, _, entries = parse_batch_file(f)
     assert len(entries) == 1
     assert entries[0].url == "https://youtu.be/ABC123"
     assert entries[0].model == "claude-haiku-4-5"
@@ -90,7 +90,7 @@ def test_parse_multiple_urls(tmp_path):
         "https://youtu.be/CCC\n"
     )
     f = _write(tmp_path, content)
-    _, entries = parse_batch_file(f)
+    _, _, entries = parse_batch_file(f)
     assert len(entries) == 3
     assert entries[0].url == "https://youtu.be/AAA"
     assert entries[0].model is None
@@ -111,7 +111,7 @@ def test_parse_full_example(tmp_path):
         "https://youtu.be/ZZZ\n"
     )
     f = _write(tmp_path, content)
-    default_model, entries = parse_batch_file(f)
+    default_model, _, entries = parse_batch_file(f)
     assert default_model == "gemini-2.5-flash"
     assert len(entries) == 3
     assert entries[0].model is None

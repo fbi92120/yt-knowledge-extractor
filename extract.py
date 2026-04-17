@@ -3,9 +3,10 @@ from __future__ import annotations
 """Point d'entrée CLI — YT Knowledge Extractor.
 
 Usage :
-    python extract.py [URL]                         ← mode unitaire
-    python extract.py fichier.txt [--dry-run]       ← mode batch
-    python extract.py --dry-run fichier.txt         ← ordre alternatif
+    python extract.py [URL]                                ← mode unitaire
+    python extract.py [URL] [--gist]                       ← mode unitaire + publication gist
+    python extract.py fichier.txt [--dry-run] [--gist]     ← mode batch
+    python extract.py --dry-run fichier.txt                ← ordre alternatif
 
 Orchestre le pipeline complet sans logique métier — tout est dans src/.
 """
@@ -25,6 +26,7 @@ from src.generator import generate_note
 from src.validator import validate_note
 from src.writer import build_file_path, write_note
 from src.batch import parse_batch_file, resolve_model, archive_existing
+from src.share import publish_gist, GhNotFoundError, GhNotAuthenticatedError, GhPublishError
 
 
 def load_config() -> dict:
@@ -50,7 +52,7 @@ def load_config() -> dict:
     return config
 
 
-def _run_single(config: dict, url: str) -> None:
+def _run_single(config: dict, url: str, gist: bool = False) -> None:
     """Pipeline complet pour une URL unique."""
     try:
         video_id = extract_video_id(url)
@@ -61,27 +63,13 @@ def _run_single(config: dict, url: str) -> None:
     language_warning: str | None = None
     warnings: list[str] = []
     result_path = None
+    gist_existing = False
+    file_path_existing = None
 
     with yaspin(Spinners.dots, color="cyan") as sp:
         try:
             sp.text = "Extraction des métadonnées..."
             metadata = fetch_metadata(url)
-
-            sp.text = "Extraction du transcript..."
-            language = config.get("transcript_language", "fr")
-            segments, actual_language = fetch_transcript(video_id, language)
-            if actual_language != language:
-                language_warning = (
-                    f"Langue {language} non disponible. Utilisation de {actual_language}."
-                )
-            formatted_transcript = format_transcript_for_prompt(segments)
-
-            sp.text = f"Génération de la fiche via {config['llm']['provider']}..."
-            note = generate_note(
-                config, video_id, url, metadata, segments, formatted_transcript
-            )
-
-            _, warnings = validate_note(note)
 
             file_path = build_file_path(
                 config,
@@ -90,28 +78,61 @@ def _run_single(config: dict, url: str) -> None:
                 metadata["title"],
             )
 
-            overwrite = False
-            if file_path.exists():
-                sp.stop()
-                try:
-                    answer = input(f"Ce fichier existe déjà : {file_path}\nÉcraser ? (o/N) ")
-                except (EOFError, KeyboardInterrupt):
-                    print("\nAnnulé.", file=sys.stderr)
-                    sys.exit(1)
-                if answer.strip().lower() not in ("o", "oui", "y", "yes"):
-                    print("Écriture annulée par l'utilisateur.")
-                    sys.exit(0)
-                overwrite = True
-                sp.start()
+            # --gist + fiche existante → pas de régénération, publication directe
+            if gist and file_path.exists():
+                gist_existing = True
+                file_path_existing = file_path
+                sp.ok("✓")
+            else:
+                sp.text = "Extraction du transcript..."
+                language = config.get("transcript_language", "fr")
+                segments, actual_language = fetch_transcript(video_id, language)
+                if actual_language != language:
+                    language_warning = (
+                        f"Langue {language} non disponible. Utilisation de {actual_language}."
+                    )
+                formatted_transcript = format_transcript_for_prompt(segments)
 
-            sp.text = "Écriture dans le vault..."
-            result_path = write_note(file_path, note, warnings, overwrite=overwrite)
+                sp.text = f"Génération de la fiche via {config['llm']['provider']}..."
+                note = generate_note(
+                    config, video_id, url, metadata, segments, formatted_transcript
+                )
 
-            sp.ok("✓")
+                _, warnings = validate_note(note)
+
+                overwrite = False
+                if file_path.exists():
+                    sp.stop()
+                    try:
+                        answer = input(f"Ce fichier existe déjà : {file_path}\nÉcraser ? (o/N) ")
+                    except (EOFError, KeyboardInterrupt):
+                        print("\nAnnulé.", file=sys.stderr)
+                        sys.exit(1)
+                    if answer.strip().lower() not in ("o", "oui", "y", "yes"):
+                        print("Écriture annulée par l'utilisateur.")
+                        sys.exit(0)
+                    overwrite = True
+                    sp.start()
+
+                sp.text = "Écriture dans le vault..."
+                result_path = write_note(file_path, note, warnings, overwrite=overwrite)
+
+                sp.ok("✓")
         except Exception as e:
             sp.fail("✗")
             print(f"\nErreur : {e}", file=sys.stderr)
             sys.exit(1)
+
+    # --gist + fiche existante : publier sans régénération
+    if gist_existing and file_path_existing is not None:
+        try:
+            gist_url = publish_gist(file_path_existing)
+            print(f"\n✓ Fiche : file://{file_path_existing.absolute()}")
+            print(f"✓ Gist : {gist_url}")
+        except (GhNotFoundError, GhNotAuthenticatedError, GhPublishError) as e:
+            print(f"\n⚠ {e}", file=sys.stderr)
+            print(f"✓ Fiche locale préservée : file://{file_path_existing.absolute()}")
+        return
 
     if language_warning:
         print(f"⚠ {language_warning}")
@@ -121,15 +142,24 @@ def _run_single(config: dict, url: str) -> None:
         for w in warnings:
             print(f"  - {w}")
 
-    print(f"\n✓ Fiche créée : file://{result_path.absolute()}")
+    if gist and result_path:
+        try:
+            gist_url = publish_gist(result_path)
+            print(f"\n✓ Fiche créée : file://{result_path.absolute()}")
+            print(f"✓ Gist : {gist_url}")
+        except (GhNotFoundError, GhNotAuthenticatedError, GhPublishError) as e:
+            print(f"\n⚠ {e}", file=sys.stderr)
+            print(f"✓ Fiche locale préservée : file://{result_path.absolute()}")
+    else:
+        print(f"\n✓ Fiche créée : file://{result_path.absolute()}")
 
 
-def _run_batch(config: dict, batch_path: Path, dry_run: bool) -> None:
+def _run_batch(config: dict, batch_path: Path, dry_run: bool, cli_gist: bool = False) -> None:
     """Pipeline batch depuis un fichier d'URLs."""
     from datetime import datetime
 
     try:
-        file_default_model, entries = parse_batch_file(batch_path)
+        file_default_model, file_default_gist, entries = parse_batch_file(batch_path)
     except FileNotFoundError:
         print(f"Erreur : fichier introuvable : {batch_path}", file=sys.stderr)
         sys.exit(1)
@@ -142,8 +172,13 @@ def _run_batch(config: dict, batch_path: Path, dry_run: bool) -> None:
     config_model = config["llm"]["model"]
     # Modèle affiché en tête : priorité fichier > config
     display_model = file_default_model or config_model
+    # Intention gist globale (header fichier ou CLI)
+    global_gist = file_default_gist or cli_gist
 
     if dry_run:
+        any_gist = global_gist or any(e.gist for e in entries)
+        if any_gist:
+            print("⚠ --gist ignoré en mode dry-run.")
         print(f"[DRY-RUN] {total} URL(s) à traiter — modèle : {display_model}\n")
         for i, entry in enumerate(entries, 1):
             model = resolve_model(entry.model, file_default_model, config_model)
@@ -156,6 +191,7 @@ def _run_batch(config: dict, batch_path: Path, dry_run: bool) -> None:
     successes = 0
     failures = 0
     archived = 0
+    gist_count = 0
 
     now = datetime.now()
     log_name = f"batch-{now.strftime('%Y-%m-%d-%H-%M')}.log"
@@ -165,10 +201,14 @@ def _run_batch(config: dict, batch_path: Path, dry_run: bool) -> None:
 
     with open(log_path, "w", encoding="utf-8") as log:
         log.write(f"# Batch log — {now.strftime('%Y-%m-%d %H:%M')}\n")
-        log.write(f"# model: {display_model}\n\n")
+        log.write(f"# model: {display_model}\n")
+        if global_gist:
+            log.write("# gist: true\n")
+        log.write("\n")
 
         for i, entry in enumerate(entries, 1):
             model = resolve_model(entry.model, file_default_model, config_model)
+            resolved_gist = entry.gist or global_gist
             if entry.model:
                 print(f"[{i}/{total}] {entry.url} — modèle : {model}")
             else:
@@ -210,7 +250,18 @@ def _run_batch(config: dict, batch_path: Path, dry_run: bool) -> None:
 
                 write_note(file_path, note, warnings, overwrite=False)
                 print(f"  ✓ {file_path}")
-                log.write(f"✓ {entry.url} → {file_path}{archived_tag}\n")
+
+                # Publication gist si demandée
+                gist_suffix = ""
+                if resolved_gist:
+                    try:
+                        gist_url = publish_gist(file_path)
+                        gist_suffix = f" → {gist_url}"
+                        gist_count += 1
+                    except (GhNotFoundError, GhNotAuthenticatedError, GhPublishError) as e:
+                        gist_suffix = f" → Erreur gist : {e}"
+
+                log.write(f"✓ {entry.url} → {file_path}{archived_tag}{gist_suffix}\n")
                 successes += 1
 
             except Exception as e:
@@ -218,9 +269,14 @@ def _run_batch(config: dict, batch_path: Path, dry_run: bool) -> None:
                 log.write(f"✗ {entry.url} → Erreur : {e}\n")
                 failures += 1
 
-        log.write(f"\n# Résumé : {successes} succès, {failures} échec(s), {archived} archivée(s)\n")
+        summary = f"# Résumé : {successes} succès, {failures} échec(s), {archived} archivée(s)"
+        if global_gist or any(e.gist for e in entries):
+            summary += f", {gist_count} gist(s) publiés"
+        log.write(f"\n{summary}\n")
 
     print(f"\nRésumé : {successes} succès, {failures} échec(s), {archived} archivée(s)")
+    if global_gist or any(e.gist for e in entries):
+        print(f"Gists publiés : {gist_count}")
     print(f"Log : {log_path}")
 
 
@@ -230,12 +286,13 @@ def main():
 
     raw_args = sys.argv[1:]
     dry_run = "--dry-run" in raw_args
-    args = [a for a in raw_args if a != "--dry-run"]
+    gist = "--gist" in raw_args
+    args = [a for a in raw_args if a not in ("--dry-run", "--gist")]
 
     if args:
         first_arg = args[0]
         if first_arg.endswith(".txt"):
-            _run_batch(config, Path(first_arg), dry_run)
+            _run_batch(config, Path(first_arg), dry_run, cli_gist=gist)
             return
         url = first_arg
     else:
@@ -248,7 +305,7 @@ def main():
             print("Aucune URL fournie.", file=sys.stderr)
             sys.exit(1)
 
-    _run_single(config, url)
+    _run_single(config, url, gist=gist)
 
 
 if __name__ == "__main__":

@@ -23,30 +23,32 @@ from pathlib import Path
 
 @dataclass
 class BatchEntry:
-    """Une entrée du fichier batch : URL + modèle optionnel."""
+    """Une entrée du fichier batch : URL + modèle optionnel + flag gist."""
 
     url: str
     model: str | None  # None → utiliser le modèle par défaut résolu
+    gist: bool = False  # True si "gist" figure sur cette ligne
 
 
-def parse_batch_file(path: Path) -> tuple[str | None, list[BatchEntry]]:
-    """Parse le fichier batch et retourne (default_model, entries).
+def parse_batch_file(path: Path) -> tuple[str | None, bool, list[BatchEntry]]:
+    """Parse le fichier batch et retourne (default_model, default_gist, entries).
 
     Lignes traitées :
     - Vides ou blanc seul → ignorées
-    - Commençant par # → directive si « # model: NOM », sinon ignorée
-    - Autres → URL avec surcharge modèle optionnelle (model=NOM)
+    - Commençant par # → directive si « # model: NOM » ou « # gist », sinon ignorée
+    - Autres → URL avec surcharges optionnelles (model=NOM et/ou gist)
 
     Args:
         path: chemin vers le fichier .txt
 
     Returns:
-        (modèle_par_défaut | None, liste de BatchEntry)
+        (modèle_par_défaut | None, gist_par_défaut, liste de BatchEntry)
 
     Raises:
         FileNotFoundError: si le fichier n'existe pas
     """
     default_model: str | None = None
+    default_gist: bool = False
     entries: list[BatchEntry] = []
 
     text = path.read_text(encoding="utf-8")
@@ -58,16 +60,26 @@ def parse_batch_file(path: Path) -> tuple[str | None, list[BatchEntry]]:
             m = re.match(r"^#\s*model:\s*(\S+)", line)
             if m:
                 default_model = m.group(1)
+                continue
+            if re.match(r"^#\s*gist\s*$", line):
+                default_gist = True
             continue
-        # Ligne URL — surcharge modèle optionnelle : "URL model=NOM"
+        # Ligne URL — surcharges optionnelles : model=NOM et/ou gist
+        entry_model: str | None = None
+        entry_gist: bool = False
         m = re.match(r"^(\S+)\s+model=(\S+)", line)
         if m:
-            entries.append(BatchEntry(url=m.group(1), model=m.group(2)))
+            url = m.group(1)
+            entry_model = m.group(2)
+            rest_parts = line[m.end():].split()
+            entry_gist = "gist" in rest_parts
         else:
-            url = line.split()[0]
-            entries.append(BatchEntry(url=url, model=None))
+            parts = line.split()
+            url = parts[0]
+            entry_gist = "gist" in parts[1:]
+        entries.append(BatchEntry(url=url, model=entry_model, gist=entry_gist))
 
-    return default_model, entries
+    return default_model, default_gist, entries
 
 
 def resolve_model(
