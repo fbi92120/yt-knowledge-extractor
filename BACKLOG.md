@@ -10,6 +10,17 @@ le dossier vide reste dans le vault.
 **Priorité** : basse — outil personnel, impact cosmétique
 **Fix** : déplacer mkdir après confirmation positive
 
+## Gaps de spec
+
+### Déduplication URLs — paramètres ?si= non nettoyés
+**Projet** : yt-extractor
+**Source** : production — batch validation V1.1
+**Description** : URLs avec ?si= traitées comme distinctes 
+  de la même URL sans paramètre. Génère des doublons en batch.
+**Action** : Normaliser l'URL (extraire video_id) 
+  avant déduplication dans le pipeline batch
+**Statut** : ouvert
+
 ---
 
 ## Tests manquants identifiés
