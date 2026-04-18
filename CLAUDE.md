@@ -1,4 +1,5 @@
 # CLAUDE.md — Projet YT Knowledge Extractor
+# Version : 1.0 — Date : 2026-04-18 17:46
 # Emplacement cible : ~/Projects/yt-knowledge-extractor/CLAUDE.md
 # Portée : ce projet uniquement
 #

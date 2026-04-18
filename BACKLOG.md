@@ -1,4 +1,6 @@
 # BACKLOG.md — YT Knowledge Extractor
+**Version** : 1.0  
+**Date** : 2026-04-18 17:46
 
 ## Bugs connus
 

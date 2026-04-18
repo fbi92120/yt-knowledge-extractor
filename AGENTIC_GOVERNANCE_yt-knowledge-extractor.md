@@ -1,7 +1,8 @@
 # Fiche de Gouvernance Agentique — yt-knowledge-extractor
 
 > Agent autonome de surveillance et traitement de vidéos YouTube  
-> **Version** : 1.0 — Avril 2026  
+> **Version** : 1.0  
+> **Date** : 2026-04-18 17:46  
 > **Statut** : V1 — champs `[à compléter]` bloquants avant mise en production
 
 ---

@@ -1,6 +1,7 @@
 # PLAN.md — Plan d'implémentation YT Knowledge Extractor
 
-**Date** : 2026-04-05  
+**Version** : 1.0  
+**Date** : 2026-04-06 11:47  
 **Méthode** : Séquence de 10 prompts séquentiels (un par un, chaque étape terminée avant la suivante)
 
 ---
