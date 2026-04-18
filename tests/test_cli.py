@@ -136,7 +136,10 @@ def _make_spinner_mock():
 
 
 def test_overwrite_confirmation_refused(tmp_path):
-    """extract.main() sort proprement (code 0) si l'utilisateur refuse l'écrasement."""
+    """extract.main() sort proprement (code 0) si l'utilisateur refuse l'écrasement.
+
+    Fiche sans **Model** dans le header → dialog "modèle inconnu" → réponse N → exit 0.
+    """
     import extract
 
     existing = tmp_path / "testchannel" / "2024-01-01-test-video.md"
@@ -163,7 +166,10 @@ def test_overwrite_confirmation_refused(tmp_path):
 
 
 def test_overwrite_confirmation_accepted(tmp_path):
-    """extract.main() écrase le fichier si l'utilisateur confirme avec 'o'."""
+    """extract.main() écrase le fichier si l'utilisateur confirme avec 'r'.
+
+    Fiche sans **Model** dans le header → dialog "modèle inconnu" → réponse r → remplacement.
+    """
     import extract
 
     existing = tmp_path / "testchannel" / "2024-01-01-test-video.md"
@@ -180,7 +186,7 @@ def test_overwrite_confirmation_accepted(tmp_path):
         patch("extract.validate_note", return_value=(None, [])),
         patch("extract.build_file_path", return_value=existing),
         patch("extract.yaspin", return_value=_make_spinner_mock()),
-        patch("builtins.input", return_value="o"),
+        patch("builtins.input", return_value="r"),
         patch("builtins.print"),
     ):
         extract.main()
