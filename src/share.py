@@ -8,7 +8,10 @@ Authentification gérée par : gh auth login (scope gist requis).
 
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
+
+_TRANSCRIPT_MARKER = "---\n<!-- TRANSCRIPT HORODATÉ COMPLET"
 
 
 class GhNotFoundError(Exception):
@@ -42,8 +45,23 @@ def _check_gh_authenticated() -> None:
         raise GhNotAuthenticatedError("gh non authentifié — lancez : gh auth login")
 
 
+def _strip_transcript(content: str) -> str:
+    """Retourne le contenu tronqué avant le bloc transcript horodaté.
+
+    Si le marqueur n'est pas trouvé, retourne le contenu intact.
+    La fiche locale reste inchangée — seul le contenu publié est tronqué.
+    """
+    idx = content.find(_TRANSCRIPT_MARKER)
+    if idx == -1:
+        return content
+    return content[:idx].rstrip() + "\n"
+
+
 def publish_gist(file_path: Path) -> str:
-    """Publie file_path en tant que GitHub Gist secret.
+    """Publie la fiche (sans transcript) en tant que GitHub Gist secret.
+
+    Le contenu publié est tronqué avant le séparateur
+    --- <!-- TRANSCRIPT HORODATÉ COMPLET. La fiche locale reste intacte.
 
     Args:
         file_path: chemin vers le fichier Markdown à publier.
@@ -59,11 +77,19 @@ def publish_gist(file_path: Path) -> str:
     _check_gh_available()
     _check_gh_authenticated()
 
-    result = subprocess.run(
-        ["gh", "gist", "create", "--secret", str(file_path)],
-        capture_output=True,
-        text=True,
-    )
+    content = file_path.read_text(encoding="utf-8")
+    gist_content = _strip_transcript(content)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_file = Path(tmpdir) / file_path.name
+        tmp_file.write_text(gist_content, encoding="utf-8")
+
+        result = subprocess.run(
+            ["gh", "gist", "create", str(tmp_file)],
+            capture_output=True,
+            text=True,
+        )
+
     if result.returncode != 0:
         raise GhPublishError(result.stderr.strip() or "Erreur inconnue lors de la publication")
 

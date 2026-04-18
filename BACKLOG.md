@@ -3,6 +3,7 @@
 ## Bugs connus
 
 ### [MINOR] Ghost directories avant confirmation overwrite
+**Date** : inconnue
 **Source** : gstack /review — adversarial synthesis
 **Description** : build_file_path crée les dossiers avant 
 la confirmation overwrite. Si l'utilisateur répond N, 
@@ -10,9 +11,34 @@ le dossier vide reste dans le vault.
 **Priorité** : basse — outil personnel, impact cosmétique
 **Fix** : déplacer mkdir après confirmation positive
 
+### [BUG] Vérification fichier existant après appel LLM
+**Date** : 2026-04-18 10:30
+**Source** : production
+**Description** : le pipeline appelait Gemini avant de vérifier
+  si la fiche existait déjà. Tokens et temps gaspillés si l'utilisateur
+  répond N.
+**Fix** : vérification déplacée à l'étape 7, avant tout appel LLM.
+**Statut** : corrigé dans SPECS.md V1.7 — implémenté
+
+### [BUG] --gist publie le transcript
+**Date** : 2026-04-18 10:30
+**Source** : production
+**Description** : --gist publiait la fiche complète transcript inclus.
+**Fix** : contenu tronqué avant le séparateur transcript avant publication.
+**Statut** : corrigé
+
+### [BUG] --gist régénère une fiche existante sans confirmation
+**Date** : 2026-04-18 10:30
+**Source** : production
+**Description** : yt "URL" --gist sur fiche existante déclenchait
+  le pipeline complet sans demander confirmation.
+**Fix** : détection fiche existante → publication directe sans régénération.
+**Statut** : corrigé
+
 ## Gaps de spec
 
 ### Déduplication URLs — paramètres ?si= non nettoyés
+**Date** : 2026-04-18 10:30
 **Projet** : yt-extractor
 **Source** : production — batch validation V1.1
 **Description** : URLs avec ?si= traitées comme distinctes 
@@ -21,11 +47,30 @@ le dossier vide reste dans le vault.
   avant déduplication dans le pipeline batch
 **Statut** : ouvert
 
+### [GAP DE SPEC] Pas de flag --model en CLI
+**Date** : 2026-04-18 10:30
+**Source** : production
+**Description** : changer de modèle nécessitait d'éditer config.yml.
+  Incohérent avec model= disponible dans le format batch .txt.
+**Fix** : flag --model NOM_MODELE ajouté, compatible --gist.
+**Statut** : spécifié V1.7 — implémenté
+
+### [MINOR] Logique métier _extract_model_from_fiche() dans extract.py
+**Date** : 2026-04-18 10:53
+**Source** : implémentation V1.7 — Claude Code
+**Description** : fonction qui lit le header de la fiche pour extraire
+  le modèle placée dans extract.py au lieu de src/.
+  Viole le principe orchestrateur passif.
+**Fix** : déplacer dans src/writer.py
+**Priorité** : basse — fonctionnel, impact architectural uniquement
+
+
 ---
 
 ## Tests manquants identifiés
 
 ### transcript.py
+**Date** : inconnue
 
 **`format_timestamp(seconds)`** — aucun test unitaire
 - `0` → `"00:00:00"`
@@ -55,6 +100,7 @@ le dossier vide reste dans le vault.
 ---
 
 ### metadata.py
+**Date** : inconnue
 
 **`filter_sources(description)`** — aucun test unitaire
 - Description vide → `""`
@@ -85,6 +131,7 @@ le dossier vide reste dans le vault.
 ---
 
 ### generator.py
+**Date** : inconnue
 
 **`build_system_prompt()`** — aucun test unitaire
 - `chapters=None` → injecte `"None (infer from content)"`
@@ -104,6 +151,7 @@ le dossier vide reste dans le vault.
 ---
 
 ### validator.py
+**Date** : inconnue
 
 **`validate_note(content)`** — aucun test unitaire (couvert seulement via smoke test)
 - Fiche complète valide → `(True, [])`
@@ -126,6 +174,7 @@ le dossier vide reste dans le vault.
 ---
 
 ### writer.py
+**Date** : inconnue
 
 **`generate_slug(title)`** — aucun test unitaire
 - Titre avec accents (`é`, `à`, `ç`) → slug ASCII
@@ -146,6 +195,7 @@ le dossier vide reste dans le vault.
 ---
 
 ### llm/ — src/llm/__init__.py + base.py
+**Date** : inconnue
 
 **`get_provider(provider_name, ...)`** — aucun test unitaire
 - Provider inconnu → `ValueError` avec message listant les providers disponibles

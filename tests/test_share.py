@@ -128,10 +128,8 @@ def test_gi01_gist_existing_file_no_regeneration(tmp_path, capsys):
     existing.write_text("contenu existant", encoding="utf-8")
 
     with (
-        patch("extract.yaspin", return_value=_make_spinner()),
         patch("extract.extract_video_id", return_value="ABC123"),
-        patch("extract.fetch_metadata", return_value=_DUMMY_METADATA),
-        patch("extract.build_file_path", return_value=existing),
+        patch("extract._find_existing_fiche", return_value=existing),
         patch("extract.generate_note") as mock_gen,
         patch("extract.publish_gist", return_value="https://gist.github.com/user/abc") as mock_pub,
     ):
@@ -151,10 +149,8 @@ def test_gi01_gist_existing_file_local_preserved_on_error(tmp_path, capsys):
     existing.write_text("contenu existant", encoding="utf-8")
 
     with (
-        patch("extract.yaspin", return_value=_make_spinner()),
         patch("extract.extract_video_id", return_value="ABC123"),
-        patch("extract.fetch_metadata", return_value=_DUMMY_METADATA),
-        patch("extract.build_file_path", return_value=existing),
+        patch("extract._find_existing_fiche", return_value=existing),
         patch("extract.generate_note"),
         patch("extract.publish_gist", side_effect=GhNotFoundError("gh non installé")),
     ):
@@ -175,11 +171,12 @@ def test_gi02_gist_new_file_generate_then_publish(tmp_path, capsys):
     import extract
 
     note_path = tmp_path / "note.md"
-    # Le fichier n'existe pas encore
+    # Aucune fiche existante dans le vault
 
     with (
         patch("extract.yaspin", return_value=_make_spinner()),
         patch("extract.extract_video_id", return_value="ABC123"),
+        patch("extract._find_existing_fiche", return_value=None),
         patch("extract.fetch_metadata", return_value=_DUMMY_METADATA),
         patch("extract.build_file_path", return_value=note_path),
         patch("extract.fetch_transcript", return_value=([], "fr")),
