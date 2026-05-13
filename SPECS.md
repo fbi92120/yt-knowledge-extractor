@@ -1,9 +1,9 @@
 # SPECS.md — YT Knowledge Extractor
 
-**Version** : 1.5  
-**Date** : 2026-04-14 10:00  
+**Version** : 1.8  
+**Date** : 2026-05-08  
 **Auteur** : François Biller  
-**Statut** : Validé — batch : affichage compact, log fichier  
+**Statut** : Amendement `--export` — copie d'une fiche dans un dossier hors iCloud + ouverture du Finder pour usage externe (Claude.ai, partage manuel)  
 **Repo** : https://github.com/fbi92120/yt-knowledge-extractor  
 **Chaîne de test** : [@SamouraiDansant](https://www.youtube.com/@SamouraiDansant)
 
@@ -36,44 +36,57 @@ Conçu pour un usage personnel d'abord, installable par d'autres utilisateurs vi
 ### Périmètre MVP (V1)
 
 - Traitement unitaire ou en batch (fichier .txt d'URLs)
-- Interface CLI : `python extract.py [URL | fichier.txt] [--dry-run]`
+- Interface CLI : `yt [URL | fichier.txt] [--dry-run] [--gist] [--model NOM_MODELE] [--export]`
 - Transcript via sous-titres YouTube (pas de transcription audio)
 - Génération de fiche via LLM (Gemini par défaut, gratuit)
 - Sauvegarde Markdown dans vault Obsidian ou dossier local
+- Publication optionnelle sur GitHub Gist via `--gist` (secret par défaut)
+- **Export local d'une fiche existante via `--export` pour usage externe (drag & drop vers Claude.ai, partage manuel)**
 - Configuration via `config.yml` et `.env` — aucun chemin ou clé hardcodé
 
 ### Mode batch — format fichier
 
 ```
-# model: gemini-2.5-flash        ← modèle par défaut (optionnel)
-https://youtu.be/xxxx             ← utilise le modèle par défaut
-https://youtu.be/yyyy model=claude-haiku-4-5  ← surcharge par URL
+# model: gemini-2.5-flash              ← modèle par défaut (optionnel)
+# gist                                 ← publie le gist pour toutes les URLs (optionnel)
+https://youtu.be/xxxx                   ← utilise le modèle par défaut
+https://youtu.be/yyyy model=claude-haiku-4-5           ← surcharge modèle
+https://youtu.be/zzzz gist                             ← gist pour cette URL
+https://youtu.be/wwww model=claude-haiku-4-5 gist      ← modèle + gist
 # commentaire ignoré
-                                  ← ligne vide ignorée
+                                        ← ligne vide ignorée
 ```
 
-Priorité modèle : ligne URL > `# model:` fichier > `config.yml`
+Priorité modèle : `--model` CLI > ligne URL `model=` > `# model:` fichier > `config.yml`  
+Priorité gist : `--gist` CLI > `gist` ligne URL > `# gist` entête fichier  
+Si `# gist` est absent et qu'aucune ligne n'a `gist` et que `--gist` est absent : aucune publication.
+
+**`--export` n'est pas supporté en mode batch.** Si `--export` est combiné avec un fichier `.txt`, l'outil produit une erreur explicite.
 
 Comportement par URL :
 1. Vérifier si la fiche existe déjà dans le vault
 2. Si oui → archiver dans `[dossier chaîne]/v1/` avant régénération
 3. Générer la fiche avec le modèle résolu
-4. Logger le résultat ligne par ligne
+4. Si gist demandé → publier après génération réussie
+5. Logger le résultat ligne par ligne
 
-Option `--dry-run` : liste les URLs et le modèle résolu sans générer ni archiver.
-Acceptée dans les deux ordres : `extract.py file.txt --dry-run` et `extract.py --dry-run file.txt`.
+Option `--dry-run` : liste les URLs, le modèle résolu et l'intention gist sans générer, archiver ni publier.  
+Acceptée dans les deux ordres : `yt file.txt --dry-run` et `yt --dry-run file.txt`.
 
 Fichier log généré automatiquement en mode réel : `batch-YYYY-MM-DD-HH-MM.log`
 dans le même répertoire que le fichier batch. Format :
 ```
 # Batch log — 2026-04-14 09:15
 # model: gemini-2.5-flash
+# gist: true
 
-✓ https://youtu.be/xxx → chemin/fiche.md
-✓ https://youtu.be/yyy → chemin/fiche.md [archivée v1]
-✗ https://youtu.be/zzz → Erreur : message
+✓ https://youtu.be/xxx → chemin/fiche.md → https://gist.github.com/fbi92120/abc123
+✓ https://youtu.be/yyy → chemin/fiche.md [archivée v1] → https://gist.github.com/fbi92120/def456
+✓ https://youtu.be/zzz → chemin/fiche.md (gist ignoré — génération échouée)
+✗ https://youtu.be/www → Erreur génération : message
+✓ https://youtu.be/vvv → chemin/fiche.md → Erreur gist : gh non authentifié
 
-# Résumé : N succès, N échec(s), N archivée(s)
+# Résumé : N succès, N échec(s), N archivée(s), N gist(s) publiés
 ```
 
 ### Hors scope V1
@@ -82,6 +95,10 @@ dans le même répertoire que le fichier batch. Format :
 - Recherche cross-vidéos (V2)
 - Multi-utilisateurs simultanés (V3 SaaS)
 - Transcription audio via Whisper (fallback si sous-titres absents)
+- Mise à jour d'un gist existant (YT Extractor ne tracke pas les gist IDs)
+- Gist public (toujours secret via `--gist` — partage par lien uniquement)
+- Comparaison côte à côte de fiches générées avec différents modèles (à étudier en V1.9+)
+- `--export` en mode batch (à étudier si besoin réel émerge)
 
 ### Évolutions prévues
 
@@ -102,6 +119,7 @@ python-slugify            # génération slug ASCII depuis titre
 pyyaml                    # lecture config.yml
 python-dotenv             # lecture .env
 requests                  # appels API LLM (tous providers)
+gh (GitHub CLI)           # publication gist — outil système, pas une dépendance Python
 ```
 
 ### Structure du repo
@@ -122,30 +140,36 @@ yt-knowledge-extractor/
 │   ├── generator.py           # génération fiche (orchestration LLM)
 │   ├── writer.py              # écriture fichier Markdown + slug
 │   ├── validator.py           # validation structure fiche produite
+│   ├── share.py               # publication GitHub Gist
+│   ├── export.py              # NOUVEAU V1.8 — copie fiche vers export_directory + ouverture Finder
 │   └── llm/
 │       ├── base.py            # interface abstraite LLMProvider
-│       ├── groq.py            # provider Groq (défaut)
+│       ├── groq.py            # provider Groq
+│       ├── gemini.py          # provider Gemini (défaut)
 │       ├── anthropic.py       # provider Claude API
 │       ├── openai.py          # provider OpenAI
 │       └── ollama.py          # provider Ollama local
 └── tests/
     ├── test_smoke.py          # URL de référence fixe
-    └── test_structure.py      # validation sections obligatoires
+    ├── test_structure.py      # validation sections obligatoires
+    ├── test_share.py          # validation comportements --gist
+    ├── test_model.py          # validation comportements --model
+    └── test_export.py         # NOUVEAU V1.8 — validation comportements --export
 ```
 
 ### Configuration utilisateur
 
-`config.yml` (copié depuis `config.yml.example`) :
+`config.yml` (copié depuis `config.yml.example`) — inchangé, `--gist` ne nécessite pas de section dédiée :
 
 ```yaml
 # Langue du transcript à extraire
 transcript_language: fr
 
-# Provider LLM : groq | anthropic | openai | ollama
+# Provider LLM : groq | anthropic | openai | ollama | gemini
 llm:
-  provider: groq
-  model: llama-3.3-70b-versatile
-  api_key_env: GROQ_API_KEY    # nom de la variable dans .env
+  provider: gemini
+  model: gemini-2.5-flash
+  api_key_env: GEMINI_API_KEY    # nom de la variable dans .env
 
 # Destination des fiches générées
 output:
@@ -155,34 +179,131 @@ output:
 
 # Langue de la fiche générée
 output_language: fr
+
+# Répertoire d'export pour --export (NOUVEAU V1.8)
+# Dossier local hors iCloud où les fiches sont copiées pour usage externe
+# (drag & drop vers Claude.ai, partage manuel, etc.)
+# Si non configuré : ~/Documents/yt-exports/ (créé automatiquement si absent)
+export_directory: ~/Documents/yt-exports
 ```
 
 `.env` (copié depuis `.env.example`) :
 
 ```
-GROQ_API_KEY=gsk_...
+GEMINI_API_KEY=AIza...
+# GROQ_API_KEY=gsk_...
 # ANTHROPIC_API_KEY=sk-ant-...
 # OPENAI_API_KEY=sk-...
+
+# GitHub Gist (optionnel — requis uniquement pour --gist)
+# Aucun token ici — authentification via : gh auth login (scope : gist)
 ```
+
+L'authentification GitHub Gist est gérée par `gh auth login` — aucune clé dans `.env`.
+
+Prérequis pour `--gist` :
+- `gh` (GitHub CLI) installé : https://cli.github.com
+- Authentifié une seule fois : `gh auth login` (scope `gist` requis)
+- `gh` stocke son token dans `~/.config/gh/` — aucune clé ne transite par le projet
+
+**Visibilité des gists secrets** : un gist créé avec `--gist` est secret.
+Il n'apparaît pas sur la page de profil `https://gist.github.com/[username]`
+et n'est pas indexé par les moteurs de recherche.
+Il reste accessible à toute personne en possession du lien.
+C'est le comportement attendu pour partager une fiche via un lien (Discord, etc.)
+sans l'exposer publiquement.
 
 ### Flux de traitement
 
 ```
+Mode unitaire sans --gist (inchangé sauf ordre des étapes) :
 1.  Réception URL YouTube
 2.  Extraction video_id
 3.  Extraction métadonnées (titre, chaîne, durée, description, chapitres natifs)
-4.  Extraction transcript horodaté (langue configurée)
-5.  Vérification taille contexte vs modèle configuré → BLOQUE si insuffisant
-6.  Filtrage sources intellectuelles depuis description YouTube
-7.  Construction prompt (system + transcript complet)
-8.  Envoi au LLM configuré
-9.  Réception fiche brute
-10. Validation structure (sections, minimums)
-11. Génération slug ASCII depuis titre
-12. Construction chemin fichier
-13. Demande confirmation si fichier existant
-14. Écriture fichier Markdown (avec avertissements en tête si nécessaire)
-15. Confirmation terminal (chemin fichier créé)
+4.  Résolution modèle (--model CLI > config.yml)
+5.  Génération slug ASCII depuis titre
+6.  Construction chemin fichier
+7.  Vérification existence fichier → demande confirmation si existant (AVANT appel LLM)
+    - Même modèle   : "Ce fichier existe déjà : [chemin] (généré avec [modèle])\nÉcraser ? (o/N)"
+    - Modèle diff.  : "Ce fichier existe déjà : [chemin] (généré avec [ancien modèle])\nModèle différent : [nouveau modèle]\n(a) Archiver en v1/ et régénérer   (r) Remplacer   (N) Annuler"
+    - Modèle inconnu: "Ce fichier existe déjà : [chemin] (modèle inconnu)\nModèle actuel : [modèle]\n(a) Archiver en v1/ et régénérer   (r) Remplacer   (N) Annuler"
+    - Si N ou Annuler → arrêt immédiat, aucun appel LLM
+8.  Extraction transcript horodaté (langue configurée)
+9.  Vérification taille contexte vs modèle configuré → BLOQUE si insuffisant
+10. Filtrage sources intellectuelles depuis description YouTube
+11. Construction prompt (system + transcript complet)
+12. Envoi au LLM configuré
+13. Réception fiche brute
+14. Validation structure (sections, minimums)
+15. Écriture fichier Markdown (avec avertissements en tête si nécessaire)
+16. Confirmation terminal (chemin fichier créé)
+
+Mode unitaire avec --gist, fiche inexistante :
+1-16. Pipeline ci-dessus
+17.   Vérification gh disponible et authentifié → erreur lisible si absent, fiche locale préservée
+18.   Publication gist secret (contenu tronqué avant le transcript)
+19.   Confirmation terminal : chemin fichier + URL gist
+
+Mode unitaire avec --gist, fiche déjà existante :
+1.    Détection fiche existante dans le vault
+2.    Pas de régénération — aucun appel LLM
+3.    Vérification gh disponible et authentifié → erreur lisible si absent
+4.    Publication gist secret depuis la fiche existante (contenu tronqué avant le transcript)
+5.    Confirmation terminal : chemin fichier + URL gist
+
+Mode unitaire avec --model + --gist, fiche existante avec modèle différent :
+1.    Détection fiche existante
+2.    Affichage message modèle différent avec options (a) / (r) / (N)
+3.    Si (a) → archiver en v1/, régénérer, puis publier gist
+4.    Si (r) → régénérer sans archiver, puis publier gist
+5.    Si (N) → annuler, aucun appel LLM, aucun gist
+
+Mode unitaire avec --export, fiche existante (NOUVEAU V1.8) :
+1.    Réception URL YouTube
+2.    Extraction video_id
+3.    Recherche fiche existante via _find_existing_fiche() (hors v1/)
+4.    Si trouvée :
+      a. Copie de la fiche vers export_directory (force téléchargement iCloud si nécessaire)
+      b. Si fichier de même nom déjà dans export_directory : écrasement silencieux
+      c. Ouverture du Finder sur export_directory via `open` (commande système macOS)
+      d. Confirmation terminal : chemin source + chemin destination
+5.    Si non trouvée → demande confirmation :
+      "Aucune fiche trouvée pour cette URL. Générer puis exporter ? (o/N)"
+      a. Si N → arrêt immédiat, aucun appel LLM, aucune copie
+      b. Si o → pipeline complet de génération puis copie + Finder
+
+Mode unitaire avec --export + --gist, fiche existante (NOUVEAU V1.8) :
+1-4. Pipeline --export ci-dessus
+5.   Vérification gh disponible et authentifié
+6.   Publication gist secret depuis la fiche source (vault, pas la copie exportée)
+7.   Confirmation terminal : chemin source + chemin destination + URL gist
+
+Mode unitaire avec --export + --gist, fiche inexistante (NOUVEAU V1.8) :
+1.   Demande confirmation génération
+2.   Si o → pipeline complet → copie vers export_directory → Finder → publication gist
+3.   Si N → arrêt immédiat
+
+Mode unitaire avec --export + --dry-run (NOUVEAU V1.8) :
+1.   Avertissement terminal : "⚠ --dry-run ignoré : --export n'a pas d'effet à simuler."
+2.   Exécution normale de --export.
+```
+
+### Structure du dossier d'export (NOUVEAU V1.8)
+
+```
+[export_directory]/
+  └── [YYYY-MM-DD]-[slug-ascii].md     ← copie plate, sans hiérarchie par chaîne
+```
+
+**Décision** : pas de sous-dossier par chaîne dans `export_directory`. Le dossier
+est plat — destiné à être un "presse-papier de fiches" temporaire pour drag & drop
+vers Claude.ai ou autre usage externe. La hiérarchie complète reste dans le vault.
+
+Exemple :
+```
+~/Documents/yt-exports/
+  ├── 2026-04-05-jai-teste-deepseek-pendant-5-jours.md
+  └── 2026-04-08-claude-mythos-et-realite.md
 ```
 
 ### Structure du fichier de sortie
@@ -354,15 +475,42 @@ Format: [HH:MM:SS] text
 | Sous-titres absents | Erreur terminal : *"Aucun sous-titre disponible pour cette vidéo. Envisagez yt-dlp + Whisper (hors scope V1)."* Aucun fichier créé. |
 | Langue demandée absente | Fallback sur langue disponible la plus proche + avertissement terminal : *"Langue [fr] non disponible. Utilisation de [en]."* |
 | Chapitres YouTube natifs présents | Transmis au LLM via `{chapters}` pour servir de base au chapitrage inféré. |
-| Contexte modèle insuffisant | Blocage avec message : *"Modèle [X] : fenêtre de contexte insuffisante ([N] tokens disponibles, [M] requis). Utilisez Groq (128k) ou un modèle 32k+."* Aucun fichier créé. |
+| Contexte modèle insuffisant | Blocage avec message : *"Modèle [X] : fenêtre de contexte insuffisante ([N] tokens disponibles, [M] requis). Utilisez Gemini (1M) ou un modèle 32k+."* Aucun fichier créé. |
 | Chapitrage généré < 6 blocs | Sauvegarde + avertissement en tête de fiche : *"⚠️ Chapitrage incomplet : [N] blocs détectés, minimum 6 attendus."* |
 | Concepts générés < 3 | Sauvegarde + avertissement en tête de fiche (géré dans le prompt + validateur). |
 | Erreur API LLM | Erreur terminal avec code HTTP. Aucun fichier créé. |
 | Vidéo privée ou supprimée | Erreur terminal. Aucun fichier créé. |
-| Fichier déjà existant | Demande de confirmation : *"Ce fichier existe déjà : [chemin]. Écraser ? (o/N)"* Aucune action sans confirmation explicite. |
+| Fichier déjà existant, même modèle | Avant tout appel LLM : *"Ce fichier existe déjà : [chemin] (généré avec [modèle])\nÉcraser ? (o/N)"* Si N → arrêt immédiat. |
+| Fichier déjà existant, modèle différent | Avant tout appel LLM : *"Ce fichier existe déjà : [chemin] (généré avec [ancien modèle])\nModèle différent : [nouveau modèle]\n(a) Archiver en v1/ et régénérer   (r) Remplacer   (N) Annuler"* |
+| Fichier déjà existant, modèle inconnu (header absent) | Avant tout appel LLM : *"Ce fichier existe déjà : [chemin] (modèle inconnu)\nModèle actuel : [modèle]\n(a) Archiver en v1/ et régénérer   (r) Remplacer   (N) Annuler"* |
+| `--model` + modèle inconnu du provider | Erreur terminal : *"Modèle [X] non reconnu par le provider [Y]."* Aucun fichier créé. |
+| `--model` + `--gist` + fiche existante même modèle | Publication gist sans régénération. |
+| `--model` + `--gist` + fiche existante modèle différent | Affiche options (a)/(r)/(N) avec mention "+ gist" sur chaque option. |
 | Régénération après changement de specs | Archiver les fiches existantes dans `[vault_path]/[chaîne]/v1/` avant régénération. Les nouvelles fiches suivent les specs courantes. Les fiches archivées servent de référence pour la validation sur échantillon. |
 | Description YouTube vide | Section sources affiche "Aucune source identifiée." sans erreur. |
 | Sources non présentes dans la description | Listées sans URL ou omises. Jamais d'URL inventée. Jamais l'URL de la vidéo comme source. |
+| `--gist` + `--dry-run` | `--dry-run` prend le dessus. Aucune publication. Avertissement terminal : *"--gist ignoré en mode dry-run."* |
+| `--gist` + fiche inexistante | Génération normale puis publication. Comportement identique à une génération sans `--gist` suivie d'un `--gist` sur fiche existante. |
+| `--gist` + fiche déjà existante | Publication gist secret depuis la fiche existante sans régénération. |
+| `gh` non installé | Erreur terminal : *"gh non installé — publication impossible. Installer : https://cli.github.com"* Fiche locale préservée. Pas de blocage du pipeline. |
+| `gh` non authentifié | Erreur terminal : *"gh non authentifié — lancez : gh auth login"* Fiche locale préservée. Pas de blocage du pipeline. |
+| Erreur réseau lors de la publication gist | Erreur terminal avec le message retourné par gh. Fiche locale préservée. Pas de blocage du pipeline. |
+| Fiche avec avertissements + `--gist` | Publiée telle quelle, avertissements inclus. C'est une décision humaine de partager une fiche incomplète. |
+| `--gist` en batch, génération échouée | Ligne loggée sans URL gist : `✓ chemin/fiche.md (gist ignoré — génération échouée)` |
+| `--gist` en batch, gist échoue | Ligne loggée avec erreur : `✓ chemin/fiche.md → Erreur gist : [message]` La ligne suivante est traitée normalement. |
+| Gist déjà créé pour cette fiche | Toujours un nouveau gist créé. YT Extractor ne tracke pas les gist IDs. |
+| **`--export` + fiche existante (V1.8)** | **Copie vers `export_directory`. Ouverture du Finder. Confirmation terminal.** |
+| **`--export` + fiche inexistante + acceptation génération** | **Pipeline complet de génération puis copie + Finder.** |
+| **`--export` + fiche inexistante + refus génération** | **Arrêt immédiat. Aucun appel LLM. Aucune copie.** |
+| **`--export` + fichier déjà présent dans `export_directory`** | **Écrasement silencieux. Ouverture du Finder.** |
+| **`--export` + `export_directory` non configuré** | **Création automatique de `~/Documents/yt-exports/`. Copie réussie.** |
+| **`--export` + fiche dans `v1/` uniquement** | **Erreur terminal : "Aucune fiche courante pour cette URL. Fiche archivée présente dans v1/ — non exportée."** |
+| **`--export` + fiche sans header `**Model**`** | **Copie réussie. Pas de cas particulier.** |
+| **`--export` + `--gist` + fiche existante** | **Copie + publication gist. Confirmation terminal des deux opérations.** |
+| **`--export` + `--dry-run`** | **Avertissement : "⚠ --dry-run ignoré : --export n'a pas d'effet à simuler." Exécution normale.** |
+| **`--export` en mode batch (`yt file.txt --export`)** | **Erreur terminal : "--export n'est pas supporté en mode batch."** |
+| **`--export` + erreur d'écriture (permissions, disque plein)** | **Erreur terminal explicite. Fiche source préservée. Pas de Finder ouvert.** |
+| **`--export` + commande `open` indisponible (système non-macOS)** | **Copie effectuée. Avertissement terminal : "Finder non disponible sur ce système. Fiche copiée dans : [chemin]"** |
 
 ---
 
@@ -375,7 +523,7 @@ Chaîne : `@SamouraiDansant`
 Transcript FR auto-généré disponible, 697 segments validés.
 
 ```bash
-python extract.py https://youtu.be/T_GqhyYqTD4
+yt https://youtu.be/T_GqhyYqTD4
 # Résultat attendu : fichier .md créé, non vide, aucune erreur terminal
 ```
 
@@ -391,7 +539,52 @@ python extract.py https://youtu.be/T_GqhyYqTD4
 - [ ] Le transcript complet est présent après le séparateur `---`
 - [ ] Au moins 1 lien `?t=` est valide (format numérique en secondes)
 
-### Validation avant régénération en batch
+### Tests de comportement --gist (automatisés)
+
+`tests/test_share.py` — ces tests utilisent des mocks réseau. Aucun appel réel à GitHub.
+
+| # | Cas testé | Résultat attendu |
+|---|---|---|
+| GI-01 | `--gist` + fiche existante | Publication déclenchée, URL gist retournée, aucune régénération |
+| GI-02 | `--gist` + fiche inexistante | Génération puis publication, URL gist retournée |
+| GI-03 | `--gist` + `--dry-run` | Aucune publication, avertissement terminal `--gist ignoré en mode dry-run` |
+| GI-04 | `--gist` + `gh` absent | Erreur lisible, fiche locale intacte, script ne plante pas |
+| GI-05 | `--gist` + `gh` non authentifié | Erreur lisible, fiche locale intacte, script ne plante pas |
+| GI-06 | `--gist` + erreur réseau | Erreur lisible, fiche locale intacte, script ne plante pas |
+| GI-07 | `--gist` en batch, `# gist` en entête | Publication pour toutes les URLs, URL gist sur chaque ligne du log |
+| GI-08 | `--gist` en batch, `gist` sur une ligne | Publication uniquement pour la ligne concernée |
+| GI-09 | `--gist` en batch, génération échouée | Ligne loggée sans URL gist, pas de blocage des URLs suivantes |
+| GI-10 | `--gist` en batch, gist échoue | Ligne loggée avec erreur gist, pas de blocage des URLs suivantes |
+
+### Tests de comportement --model (automatisés)
+
+`tests/test_model.py` — ces tests utilisent des mocks LLM. Aucun appel réel.
+
+| # | Cas testé | Résultat attendu |
+|---|---|---|
+| MO-01 | `--model X` + fiche inexistante | Génération avec modèle X, modèle X dans le header |
+| MO-02 | `--model X` + fiche existante même modèle | Message "Écraser ?" avant tout appel LLM |
+| MO-03 | `--model X` + fiche existante modèle différent | Message avec options (a)/(r)/(N) avant tout appel LLM |
+| MO-04 | `--model X` + fiche existante modèle inconnu | Message "modèle inconnu" avec options (a)/(r)/(N) |
+| MO-05 | `--model X` + `--gist` + fiche existante | Publication gist sans régénération si même modèle |
+| MO-06 | `--model X` + `--gist` + modèle différent + choix (a) | Archivage v1/ + régénération + gist |
+| MO-07 | `--model X` + `--gist` + modèle différent + choix (N) | Aucun appel LLM, aucun gist |
+
+### Tests de comportement --export (automatisés) — NOUVEAU V1.8
+
+`tests/test_export.py` — ces tests utilisent des mocks pour `subprocess.run(["open", ...])` 
+et pour les appels LLM. Aucun appel système réel, aucun appel réseau.
+
+| # | Cas testé | Résultat attendu |
+|---|---|---|
+| EX-01 | `--export` + fiche existante | Copie dans `export_directory`. `open` appelé sur le dossier. Fiche source intacte. |
+| EX-02 | `--export` + fiche inexistante + acceptation génération | Pipeline complet déclenché, puis copie + `open`. |
+| EX-03 | `--export` + fiche inexistante + refus génération | Aucun appel LLM. Aucune copie. Aucun `open`. |
+| EX-04 | `--export` + fichier déjà présent dans `export_directory` | Écrasement silencieux. `open` appelé. |
+| EX-05 | `--export` + `export_directory` non configuré | Création automatique de `~/Documents/yt-exports/`. Copie réussie. |
+| EX-06 | `--export` + `--gist` + fiche existante | Copie + publication gist. Deux confirmations terminal distinctes. |
+| EX-07 | `--export` + fiche présente uniquement dans `v1/` | Erreur terminal explicite. Aucune copie. Aucun `open`. |
+| EX-08 | `--export` + fiche sans header `**Model**` | Copie réussie. Aucun comportement particulier. |
 
 Avant toute régénération en batch (changement de prompt,
 changement de provider, mise à jour de specs) :
@@ -403,7 +596,7 @@ changement de provider, mise à jour de specs) :
 4. Critères pour généraliser :
    - Les biais cibles ont disparu
    - Aucun nouveau biais n'est apparu
-   - La structure V1.1 est respectée sur toutes les fiches
+   - La structure est respectée sur toutes les fiches
 5. Si un critère échoue : itérer sur les specs avant de généraliser
 
 Toute régénération en batch sans validation sur échantillon
@@ -420,7 +613,7 @@ Avant de régénérer des fiches existantes avec une nouvelle version de specs :
 
 ### Checklist de relecture humaine
 
-Après chaque génération, 6 questions à se poser avant de valider la fiche :
+Après chaque génération, questions à se poser avant de valider la fiche :
 
 1. **Thèse centrale** : reflète-elle vraiment la position de l'auteur — ou est-ce une reformulation générique qui pourrait s'appliquer à n'importe quelle vidéo sur le même sujet ?
 2. **Chapitrage** : les timestamps correspondent-ils à des transitions réelles dans la vidéo ? Vérifier 2-3 liens au hasard.
@@ -487,6 +680,36 @@ pour aboutir à [conclusion] [▶ 00:38:10](lien).
 
 ---
 
-*Fin des spécifications V1.3*  
-*Amendements : règle 9 Absolute rules (timestamps verbatim), format section 6 Formulations notables*  
-*Document suivant : `README.md` — installation et usage*
+## Annexe V1.8 — Décisions de conception `--export`
+
+*Trace des décisions prises en co-construction (session du 2026-05-08) pour permettre 
+une revue méthodologique ultérieure.*
+
+| # | Décision | Raison |
+|---|---|---|
+| 1 | Nom du flag : `--export` | Convention plus explicite que `--copy`, `--reveal`, `--finder`. Signale l'intention "sortir du vault". |
+| 2 | Pattern : `yt URL --export` | Cohérent avec les flags existants (`--gist`, `--model`, `--dry-run`). |
+| 3 | Destination configurable : clé `export_directory` dans `config.yml` | Cohérent avec `vault_path` et `local_path` déjà configurables. |
+| 4 | Valeur par défaut : `~/Documents/yt-exports/` | Hors iCloud, accessible via Finder, dossier "neutre" pour usage externe. |
+| 5 | Création automatique du dossier si absent | Friction zéro pour le premier usage. |
+| 6 | Ouverture automatique du Finder après copie | Clôt le workflow utilisateur (drag & drop immédiat). |
+| 7 | Écrasement silencieux des fichiers existants | Le dossier d'export est une zone de travail temporaire, pas une archive. Le vault préserve la source de vérité. |
+| 8 | Export uniquement de la fiche courante (pas v1/) | Cohérent avec `_find_existing_fiche()` qui exclut déjà `v1/`. Si besoin d'archive, cas séparé à étudier en V1.9+. |
+| 9 | Confirmation avant génération si fiche inexistante | Cohérent avec la règle V1.7 : aucun appel LLM sans validation explicite. |
+| 10 | Combinable avec `--gist` | Symétrique avec les autres flags. |
+| 11 | Mode unitaire uniquement (pas de batch) | Pas de cas d'usage réel identifié pour l'export en lot. Décision révisable. |
+| 12 | `--export` + `--dry-run` → avertissement | Cohérent avec `--gist` + `--dry-run`. `--export` n'a pas d'effet à simuler. |
+
+### Notes pour évolutions futures (à challenger en V1.9+)
+
+- **Comparaison côte à côte de fiches générées avec différents modèles** : besoin réel exprimé (comparer la qualité de Gemini vs Claude sur la même vidéo). L'architecture actuelle (`v1/` archives) suppose une seule fiche courante. Pistes à explorer : suffixe modèle dans nom de fichier, sous-dossier par modèle, ou structure différente.
+- **Export en mode batch** : pas de cas d'usage identifié en V1.8. À reconsidérer si un besoin émerge (par exemple : exporter toutes les fiches d'une chaîne pour un projet Claude.ai).
+- **Export depuis archives `v1/`** : pour comparer manuellement deux versions d'une fiche dans Claude.ai. Lié à la décision de comparaison ci-dessus.
+
+---
+
+*Fin des spécifications V1.8*  
+*Amendement V1.6 : feature --gist — publication GitHub Gist depuis CLI*  
+*Amendement V1.7 : feature --model, vérification fiche existante avant appel LLM, messages terminaux modèle différent*  
+*Amendement V1.8 : feature --export — copie d'une fiche dans un dossier hors iCloud + ouverture du Finder pour usage externe (Claude.ai, partage manuel)*  
+*Document suivant : `GUIDE.md` — guide utilisateur (à rédiger après implémentation V1.8)*
