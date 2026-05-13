@@ -20,3 +20,9 @@ output:
 
 # Langue de la fiche générée
 output_language: fr
+
+# Répertoire d'export pour --export (V1.8)
+# Dossier local hors iCloud où les fiches sont copiées pour usage externe
+# (drag & drop vers Claude.ai, partage manuel, etc.)
+# Si non configuré : ~/Documents/yt-exports/ (créé automatiquement si absent)
+export_directory: ~/Documents/yt-exports

@@ -1,11 +1,16 @@
 # BACKLOG.md — YT Knowledge Extractor
-**Version** : 1.0  
-**Date** : 2026-04-18 17:46
+
+**Version** : 1.2  
+**Date** : 2026-05-08  
+**Auteur** : François Biller  
+**Statut** : Mise à jour — 6 entrées ajoutées suite à co-construction SPECS V1.8 (4 entrées spec + 2 entrées méthodologiques)  
+**Repo** : https://github.com/fbi92120/yt-knowledge-extractor  
+
+---
 
 ## Bugs connus
 
 ### [MINOR] Ghost directories avant confirmation overwrite
-**Date** : inconnue
 **Source** : gstack /review — adversarial synthesis
 **Description** : build_file_path crée les dossiers avant 
 la confirmation overwrite. Si l'utilisateur répond N, 
@@ -13,34 +18,9 @@ le dossier vide reste dans le vault.
 **Priorité** : basse — outil personnel, impact cosmétique
 **Fix** : déplacer mkdir après confirmation positive
 
-### [BUG] Vérification fichier existant après appel LLM
-**Date** : 2026-04-18 10:30
-**Source** : production
-**Description** : le pipeline appelait Gemini avant de vérifier
-  si la fiche existait déjà. Tokens et temps gaspillés si l'utilisateur
-  répond N.
-**Fix** : vérification déplacée à l'étape 7, avant tout appel LLM.
-**Statut** : corrigé dans SPECS.md V1.7 — implémenté
-
-### [BUG] --gist publie le transcript
-**Date** : 2026-04-18 10:30
-**Source** : production
-**Description** : --gist publiait la fiche complète transcript inclus.
-**Fix** : contenu tronqué avant le séparateur transcript avant publication.
-**Statut** : corrigé
-
-### [BUG] --gist régénère une fiche existante sans confirmation
-**Date** : 2026-04-18 10:30
-**Source** : production
-**Description** : yt "URL" --gist sur fiche existante déclenchait
-  le pipeline complet sans demander confirmation.
-**Fix** : détection fiche existante → publication directe sans régénération.
-**Statut** : corrigé
-
 ## Gaps de spec
 
 ### Déduplication URLs — paramètres ?si= non nettoyés
-**Date** : 2026-04-18 10:30
 **Projet** : yt-extractor
 **Source** : production — batch validation V1.1
 **Description** : URLs avec ?si= traitées comme distinctes 
@@ -49,30 +29,91 @@ le dossier vide reste dans le vault.
   avant déduplication dans le pipeline batch
 **Statut** : ouvert
 
-### [GAP DE SPEC] Pas de flag --model en CLI
-**Date** : 2026-04-18 10:30
-**Source** : production
-**Description** : changer de modèle nécessitait d'éditer config.yml.
-  Incohérent avec model= disponible dans le format batch .txt.
-**Fix** : flag --model NOM_MODELE ajouté, compatible --gist.
-**Statut** : spécifié V1.7 — implémenté
+### Feature --export — copie d'une fiche dans un dossier hors iCloud
+**Projet** : yt-extractor
+**Date** : 2026-05-08
+**Source** : co-construction SPECS V1.8
+**Description** : Spécifiée dans SPECS V1.8 mais non encore implémentée.
+  Permet de copier une fiche du vault Obsidian vers un dossier local
+  accessible via Finder (~/Documents/yt-exports/ par défaut), pour ajouter
+  la fiche à un projet Claude.ai ou la partager manuellement.
+  Résout le problème iCloud : les fiches dans le vault ne sont pas toujours
+  téléchargées localement, ce qui empêche le drag & drop direct.
+**Action** : Implémenter src/export.py + câblage CLI dans extract.py +
+  test_export.py (8 tests EX-01 à EX-08). Voir SPECS V1.8 Bloc 2 (flux),
+  Bloc 4 (comportements aux limites), Bloc 5 (tableau des tests),
+  Annexe V1.8 (12 décisions de conception).
+**Statut** : ouvert — spec validée, implémentation à lancer
 
-### [MINOR] Logique métier _extract_model_from_fiche() dans extract.py
-**Date** : 2026-04-18 10:53
-**Source** : implémentation V1.7 — Claude Code
-**Description** : fonction qui lit le header de la fiche pour extraire
-  le modèle placée dans extract.py au lieu de src/.
-  Viole le principe orchestrateur passif.
-**Fix** : déplacer dans src/writer.py
-**Priorité** : basse — fonctionnel, impact architectural uniquement
+### Gemini n'est plus gratuit — corriger la mention "gratuit" du périmètre MVP
+**Projet** : yt-extractor
+**Date** : 2026-05-08
+**Source** : co-construction SPECS V1.8
+**Description** : SPECS V1.7 et V1.8 mentionnent "Gemini par défaut, gratuit"
+  dans le périmètre MVP (Bloc 1). Cette mention est devenue inexacte —
+  Gemini est facturé environ 5-10 centimes par fiche, avec un discount batch
+  de -50%.
+**Action** : Remplacer "gratuit" par "~5-10 centimes par fiche, discount batch -50%"
+  dans le périmètre MVP. À intégrer dans un amendement V1.8.1 ou V1.9.
+**Statut** : ouvert
 
+### Gist en batch — rendre explicite "1 gist par fiche"
+**Projet** : yt-extractor
+**Date** : 2026-05-08
+**Source** : co-construction SPECS V1.8
+**Description** : SPECS V1.7 et V1.8 décrivent implicitement que --gist en mode 
+  batch produit un gist distinct par fiche (visible dans le format du log :
+  une URL gist par ligne). Mais cette logique n'est pas écrite explicitement.
+  Un lecteur pourrait imaginer un gist agrégé contenant plusieurs fiches.
+**Action** : Ajouter une mention explicite dans Bloc 2 ou Bloc 4 :
+  "--gist en batch : un gist distinct par fiche. Pas de gist agrégé."
+**Statut** : ouvert
+
+### Gist — rendre explicite l'exclusion de la transcription
+**Projet** : yt-extractor
+**Date** : 2026-05-08
+**Source** : co-construction SPECS V1.8
+**Description** : SPECS V1.7 mentionne dans Bloc 2 : "Publication gist secret 
+  (contenu tronqué avant le transcript)". Cette logique mérite une ligne 
+  dédiée dans Bloc 4 (Comportements aux limites) car elle décrit un comportement 
+  important : la fiche complète vit dans Obsidian, mais le gist publié exclut 
+  la section 10 (transcription horodatée).
+**Action** : Ajouter dans Bloc 4 : "--gist : la transcription horodatée 
+  (section 10) est exclue du contenu publié. Le gist contient uniquement les 
+  sections 1-9 (jusqu'aux Sources & références)."
+**Statut** : ouvert
+
+### BACKLOG.md sans entête — V1.0 initiale non conforme
+**Projet** : yt-extractor
+**Date** : 2026-05-08
+**Source** : co-construction SPECS V1.8
+**Description** : Le BACKLOG.md initial du repo n'avait pas d'entête conforme
+  à la convention du projet (Version, Date, Auteur, Statut, Repo). Cette
+  erreur initiale a été corrigée dans la V1.1 du 2026-05-08, mais elle
+  signale un manque dans la convention : aucune règle n'imposait
+  explicitement l'entête sur les fichiers .md structurants.
+**Action** : Documenter la règle "tout .md structurant a une entête"
+  dans CLAUDE.projects.md ou CLAUDE.global.md.
+**Statut** : ouvert
+
+### Vérifier la conformité aux conventions avant chaque livrable .md
+**Projet** : tous projets
+**Date** : 2026-05-08
+**Source** : co-construction SPECS V1.8
+**Description** : Lors de la mise à jour de BACKLOG.md, l'entête conforme
+  n'a pas été ajoutée. L'erreur a été détectée par l'humain, pas par
+  l'assistant. Indique un manque de checklist méthodologique avant
+  livrable.
+**Action** : Ajouter dans CLAUDE.global.md ou METHODE_SPECS_CO-CONSTRUCTION.md
+  une checklist explicite "vérifications avant livrable" : entête conforme,
+  pattern de nommage, lecture des conventions du projet.
+**Statut** : ouvert
 
 ---
 
 ## Tests manquants identifiés
 
 ### transcript.py
-**Date** : inconnue
 
 **`format_timestamp(seconds)`** — aucun test unitaire
 - `0` → `"00:00:00"`
@@ -102,7 +143,6 @@ le dossier vide reste dans le vault.
 ---
 
 ### metadata.py
-**Date** : inconnue
 
 **`filter_sources(description)`** — aucun test unitaire
 - Description vide → `""`
@@ -133,7 +173,6 @@ le dossier vide reste dans le vault.
 ---
 
 ### generator.py
-**Date** : inconnue
 
 **`build_system_prompt()`** — aucun test unitaire
 - `chapters=None` → injecte `"None (infer from content)"`
@@ -153,7 +192,6 @@ le dossier vide reste dans le vault.
 ---
 
 ### validator.py
-**Date** : inconnue
 
 **`validate_note(content)`** — aucun test unitaire (couvert seulement via smoke test)
 - Fiche complète valide → `(True, [])`
@@ -176,7 +214,6 @@ le dossier vide reste dans le vault.
 ---
 
 ### writer.py
-**Date** : inconnue
 
 **`generate_slug(title)`** — aucun test unitaire
 - Titre avec accents (`é`, `à`, `ç`) → slug ASCII
@@ -197,7 +234,6 @@ le dossier vide reste dans le vault.
 ---
 
 ### llm/ — src/llm/__init__.py + base.py
-**Date** : inconnue
 
 **`get_provider(provider_name, ...)`** — aucun test unitaire
 - Provider inconnu → `ValueError` avec message listant les providers disponibles

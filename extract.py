@@ -28,6 +28,7 @@ from src.validator import validate_note
 from src.writer import build_file_path, write_note
 from src.batch import parse_batch_file, resolve_model, archive_existing
 from src.share import publish_gist, GhNotFoundError, GhNotAuthenticatedError, GhPublishError
+from src.export import resolve_export_directory, export_fiche, open_in_finder, check_archived_fiche
 
 
 def load_config() -> dict:
@@ -105,6 +106,7 @@ def _run_single(
     url: str,
     gist: bool = False,
     model_override: str | None = None,
+    export: bool = False,
 ) -> None:
     """Pipeline complet pour une URL unique."""
     # Appliquer la surcharge modèle
@@ -119,11 +121,61 @@ def _run_single(
         print(f"Erreur : {e}", file=sys.stderr)
         sys.exit(1)
 
+    # --- Bloc --export (Flux A, B, C) ---
+    if export:
+        existing = _find_existing_fiche(config, video_id)
+        if existing:
+            # Flux A / Flux C : fiche existante → export direct
+            try:
+                export_dir = resolve_export_directory(config)
+                dest = export_fiche(existing, export_dir)
+                open_in_finder(export_dir)
+            except OSError as e:
+                print(f"Erreur lors de l'export : {e}", file=sys.stderr)
+                sys.exit(1)
+            if gist:
+                # Flux C : publication gist depuis la source vault (pas la copie)
+                try:
+                    gist_url = publish_gist(existing)
+                    print(f"✓ Fiche source : {existing}")
+                    print(f"✓ Fiche exportée : {dest}")
+                    print(f"✓ Gist : {gist_url}")
+                except (GhNotFoundError, GhNotAuthenticatedError, GhPublishError) as e:
+                    print(f"⚠ {e}", file=sys.stderr)
+                    print(f"✓ Fiche source : {existing}")
+                    print(f"✓ Fiche exportée : {dest}")
+            else:
+                print(f"✓ Fiche source : {existing}")
+                print(f"✓ Fiche exportée : {dest}")
+            return
+
+        # Fiche non trouvée — vérifier si elle est uniquement en v1/ (archivée)
+        if check_archived_fiche(config, video_id):
+            print(
+                "Erreur : Aucune fiche courante pour cette URL. "
+                "Fiche archivée présente dans v1/ — non exportée.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        # Flux B : demande confirmation avant génération
+        try:
+            answer = input(
+                "Aucune fiche trouvée pour cette URL. Générer puis exporter ? (o/N) "
+            ).strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print("\nAnnulé.", file=sys.stderr)
+            sys.exit(1)
+        if answer not in ("o", "oui", "y", "yes"):
+            print("Annulé.")
+            sys.exit(0)
+        # Fall through au pipeline de génération
+
     # --gist + fiche existante : publication directe ou dialog modèle différent
     skip_existence_check = False
     preempt_overwrite = False
 
-    if gist:
+    if gist and not export:
         existing = _find_existing_fiche(config, video_id)
         if existing:
             existing_model = _extract_model_from_fiche(existing)
@@ -269,16 +321,42 @@ def _run_single(
         for w in warnings:
             print(f"  - {w}")
 
+    # Export après génération (Flux B — fiche inexistante confirmée)
+    export_dest: Path | None = None
+    if export and result_path:
+        try:
+            export_dir = resolve_export_directory(config)
+            export_dest = export_fiche(result_path, export_dir)
+            open_in_finder(export_dir)
+        except OSError as e:
+            print(f"⚠ Erreur export : {e}", file=sys.stderr)
+
     if gist and result_path:
         try:
             gist_url = publish_gist(result_path)
-            print(f"\n✓ Fiche créée : file://{result_path.absolute()}")
-            print(f"✓ Gist : {gist_url}")
+            if export:
+                print(f"\n✓ Fiche source : file://{result_path.absolute()}")
+                if export_dest:
+                    print(f"✓ Fiche exportée : {export_dest}")
+                print(f"✓ Gist : {gist_url}")
+            else:
+                print(f"\n✓ Fiche créée : file://{result_path.absolute()}")
+                print(f"✓ Gist : {gist_url}")
         except (GhNotFoundError, GhNotAuthenticatedError, GhPublishError) as e:
             print(f"\n⚠ {e}", file=sys.stderr)
-            print(f"✓ Fiche locale préservée : file://{result_path.absolute()}")
+            if export:
+                print(f"✓ Fiche source : file://{result_path.absolute()}")
+                if export_dest:
+                    print(f"✓ Fiche exportée : {export_dest}")
+            else:
+                print(f"✓ Fiche locale préservée : file://{result_path.absolute()}")
     else:
-        print(f"\n✓ Fiche créée : file://{result_path.absolute()}")
+        if export:
+            print(f"\n✓ Fiche source : file://{result_path.absolute()}")
+            if export_dest:
+                print(f"✓ Fiche exportée : {export_dest}")
+        else:
+            print(f"\n✓ Fiche créée : file://{result_path.absolute()}")
 
 
 def _run_batch(
@@ -422,6 +500,7 @@ def main():
     raw_args = sys.argv[1:]
     dry_run = "--dry-run" in raw_args
     gist = "--gist" in raw_args
+    export = "--export" in raw_args
 
     # Parsing --model NOM (index-based, consume deux tokens)
     model_override: str | None = None
@@ -435,7 +514,7 @@ def main():
             else:
                 print("Erreur : --model nécessite un argument.", file=sys.stderr)
                 sys.exit(1)
-        elif raw_args[i] not in ("--dry-run", "--gist"):
+        elif raw_args[i] not in ("--dry-run", "--gist", "--export"):
             args.append(raw_args[i])
             i += 1
         else:
@@ -444,6 +523,9 @@ def main():
     if args:
         first_arg = args[0]
         if first_arg.endswith(".txt"):
+            if export:
+                print("--export n'est pas supporté en mode batch.", file=sys.stderr)
+                sys.exit(1)
             _run_batch(config, Path(first_arg), dry_run, cli_gist=gist, cli_model=model_override)
             return
         url = first_arg
@@ -457,7 +539,11 @@ def main():
             print("Aucune URL fournie.", file=sys.stderr)
             sys.exit(1)
 
-    _run_single(config, url, gist=gist, model_override=model_override)
+    # Flux D : --export + --dry-run → avertissement puis exécution normale
+    if export and dry_run:
+        print("⚠ --dry-run ignoré : --export n'a pas d'effet à simuler.")
+
+    _run_single(config, url, gist=gist, model_override=model_override, export=export)
 
 
 if __name__ == "__main__":
