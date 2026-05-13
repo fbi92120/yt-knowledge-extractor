@@ -1,14 +1,42 @@
 # BACKLOG.md — YT Knowledge Extractor
 
-**Version** : 1.2  
-**Date** : 2026-05-08  
+**Version** : 1.3  
+**Date** : 2026-05-13  
 **Auteur** : François Biller  
-**Statut** : Mise à jour — 6 entrées ajoutées suite à co-construction SPECS V1.8 (4 entrées spec + 2 entrées méthodologiques)  
+**Statut** : V1.8 livrée — --export fermé, 2 items transversaux ajoutés à l'implémentation  
 **Repo** : https://github.com/fbi92120/yt-knowledge-extractor  
 
 ---
 
 ## Bugs connus
+
+### [MINOR] check_archived_fiche() duplique la navigation vault de _find_existing_fiche()
+**Projet** : yt-extractor
+**Date** : 2026-05-13
+**Source** : implémentation V1.8 — problème transversal identifié
+**Description** : `src/export.py::check_archived_fiche()` relit la config output
+  (mode, vault_path, local_path) et itère les `.md` du vault, exactement comme
+  `extract.py::_find_existing_fiche()`. La duplication deviendra une dette si
+  la logique de navigation vault évolue (nouveau mode, chemin alternatif, etc.).
+**Action** : Déplacer `_find_existing_fiche()` dans `src/` (ex. `src/vault.py`)
+  et faire appel à cette version unique depuis `extract.py` et `src/export.py`.
+  À traiter dans le même prompt que le déplacement de `_extract_model_from_fiche()`.
+**Priorité** : basse — pas de bogue actuel, dette de cohérence
+**Statut** : ouvert
+
+### [MINOR] open_in_finder() — comportement si subprocess.run code non-zéro non testé
+**Projet** : yt-extractor
+**Date** : 2026-05-13
+**Source** : implémentation V1.8 — problème transversal identifié
+**Description** : `open_in_finder()` utilise `check=False` (comportement par défaut
+  de subprocess.run), donc un code de retour non-zéro de la commande `open` est
+  silencieux. Aucun test ne couvre ce cas (ex. : répertoire inexistant au moment
+  de l'appel). La commande `open` sur macOS retourne toujours 0 en pratique,
+  mais la robustesse n'est pas garantie.
+**Action** : Ajouter un test EX-09 : mocker subprocess.run pour retourner code 1,
+  vérifier qu'aucune exception n'est levée et que la copie est préservée.
+**Priorité** : très basse — cas théorique, macOS retourne toujours 0
+**Statut** : ouvert
 
 ### [MINOR] Ghost directories avant confirmation overwrite
 **Source** : gstack /review — adversarial synthesis
@@ -29,7 +57,7 @@ le dossier vide reste dans le vault.
   avant déduplication dans le pipeline batch
 **Statut** : ouvert
 
-### Feature --export — copie d'une fiche dans un dossier hors iCloud
+### ~~Feature --export — copie d'une fiche dans un dossier hors iCloud~~
 **Projet** : yt-extractor
 **Date** : 2026-05-08
 **Source** : co-construction SPECS V1.8
@@ -43,7 +71,7 @@ le dossier vide reste dans le vault.
   test_export.py (8 tests EX-01 à EX-08). Voir SPECS V1.8 Bloc 2 (flux),
   Bloc 4 (comportements aux limites), Bloc 5 (tableau des tests),
   Annexe V1.8 (12 décisions de conception).
-**Statut** : ouvert — spec validée, implémentation à lancer
+**Statut** : ~~fermé — livré 2026-05-13, commit d33d0fc (8/8 tests EX-01 à EX-08)~~
 
 ### Gemini n'est plus gratuit — corriger la mention "gratuit" du périmètre MVP
 **Projet** : yt-extractor
