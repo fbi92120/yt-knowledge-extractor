@@ -1,9 +1,10 @@
 # BACKLOG.md — YT Knowledge Extractor
 
-**Version** : 1.3  
-**Date** : 2026-05-13  
+**Version** : 1.5  
+**Date** : 2026-07-09
 **Auteur** : François Biller  
-**Statut** : V1.8 livrée — --export fermé, 2 items transversaux ajoutés à l'implémentation  
+**Statut** : V1.8 livrée — --export fermé, 2 items transversaux ajoutés à l'implémentation.
+  Ajout section "Dette de documentation — cohérence SPECS/code" (audit préparation bench Qwen 3 8B local).  
 **Repo** : https://github.com/fbi92120/yt-knowledge-extractor  
 
 ---
@@ -56,6 +57,22 @@ le dossier vide reste dans le vault.
 **Action** : Normaliser l'URL (extraire video_id) 
   avant déduplication dans le pipeline batch
 **Statut** : ouvert
+
+### Feature `--stats` — mesure tokens et coût par extraction
+**Projet** : yt-extractor
+**Date** : 2026-07-09
+**Source** : co-construction llm-lab (transmission depuis projet YT archive)
+**Description** : YT Extractor ne logge pas les tokens consommés par appel LLM. 
+  Information utile pour comprendre les coûts réels par vidéo, anticiper les 
+  limites de contexte, et surtout comparer YT Extractor + Gemini avec YT Extractor 
+  + provider Ollama/local dans le contexte du projet llm-lab.
+  L'API Gemini renvoie déjà `usage_metadata` avec `prompt_token_count`, 
+  `candidates_token_count`, `total_token_count` — l'information existe, elle 
+  n'est simplement pas exposée.
+**Action** : Implémenter flag `--stats` sur `extract.py` affichant en terminal 
+  input/output/total tokens + coût estimé Gemini. Implémenter flag `--stats-json` 
+  pour sortie fichier machine-lisable `stats-YYYY-MM-DD-slug.json`. Étendre 
+  progressivement aux autres providers
 
 ### ~~Feature --export — copie d'une fiche dans un dossier hors iCloud~~
 **Projet** : yt-extractor
@@ -136,6 +153,48 @@ le dossier vide reste dans le vault.
   une checklist explicite "vérifications avant livrable" : entête conforme,
   pattern de nommage, lecture des conventions du projet.
 **Statut** : ouvert
+
+---
+
+## Dette de documentation — cohérence SPECS/code
+
+### SPECS Bloc 3 induit en erreur sur la structure du prompt (system vs user)
+**Projet** : yt-extractor
+**Date** : 2026-07-09
+**Source** : audit de cohérence SPECS vs code — préparation bench Qwen 3 8B local
+**Description** : SPECS.md Bloc 3 présente un unique bloc "Prompt système LLM"
+  alors que le code sépare explicitement system prompt et user prompt.
+  Réalité code :
+  - `src/generator.py:16-142` contient `SYSTEM_PROMPT_TEMPLATE` (structure
+    et règles de sortie uniquement)
+  - `src/generator.py::build_user_prompt(formatted_transcript, filtered_sources)`
+    construit le user prompt avec les headers "## Transcript complet\n" puis,
+    conditionnellement, "## Sources extraites de la description\n"
+  - `src/llm/base.py` ne fait que consommer les deux prompts déjà formatés
+**Impact** : lecture littérale des SPECS induit en erreur sur ce qui est
+  effectivement envoyé au LLM. Le scaffold markdown du user prompt n'est
+  documenté nulle part.
+**Action** : amender SPECS.md Bloc 3 pour distinguer explicitement "prompt
+  système" et "prompt user" avec le scaffold réel. Ne pas toucher au code —
+  dette de documentation uniquement.
+**Statut** : ouvert
+
+### Commentaire "réservé v2" obsolète sur la section 10 de la fiche
+**Projet** : yt-extractor
+**Date** : 2026-07-09
+**Source** : audit de cohérence SPECS vs code — préparation bench Qwen 3 8B local
+**Description** : SPECS.md Bloc 3 section 10 contient le commentaire
+  `<!-- TRANSCRIPT HORODATÉ COMPLET — réservé v2 -->`. `src/generator.py:228-229`
+  réutilise pourtant `formatted_transcript` pour écrire la section 10 dès la V1 —
+  la section est bien populée dans chaque fiche générée depuis V1.0.
+**Impact** : commentaire trompeur dans le prompt envoyé au LLM à chaque
+  génération. Aucun impact fonctionnel, mais pollution du contexte et
+  contradiction avec le comportement observé.
+**Action proposée** : retirer le commentaire "réservé v2" du
+  `SYSTEM_PROMPT_TEMPLATE` dans `src/generator.py`, et amender SPECS.md
+  Bloc 3 section 10 en conséquence. Décision à valider avec François avant
+  toute modification de code.
+**Statut** : ouvert — décision à valider
 
 ---
 
@@ -276,3 +335,40 @@ le dossier vide reste dans le vault.
 **`LLMProvider.estimate_tokens(text)`** — aucun test unitaire
 - Chaîne vide → `0`
 - Texte connu → valeur attendue selon heuristique `len/3.5`
+
+# Annexes
+## Prompt Claude Code — ajout mesure tokens dans YT Extractor
+
+Contexte : YT Extractor V1.8. Provider par défaut : Gemini via 
+src/llm/gemini.py. Chaque appel à l'API Gemini renvoie un objet 
+usage_metadata avec prompt_token_count, candidates_token_count, 
+total_token_count.
+
+Objectif : ajouter un flag --stats à extract.py qui affiche en 
+fin de traitement un résumé des tokens consommés pour la génération.
+
+Contraintes :
+- Ne pas modifier le comportement par défaut. Sans --stats, aucune 
+  sortie supplémentaire.
+- Toucher uniquement à extract.py et src/llm/gemini.py (a minima).
+- Format de sortie terminal proposé :
+  📊 Tokens consommés :
+    - Input  : X (prompt système + transcript + métadonnées)
+    - Output : Y (fiche générée)
+    - Total  : Z
+    - Coût estimé Gemini 2.5 Flash : $A.AA (à ~$0.30/1M input, 
+      $2.50/1M output)
+- Étendre à --stats-json pour sortie machine-lisable dans un fichier 
+  stats-YYYY-MM-DD-slug.json à côté de la fiche.
+- Ajouter un test simple dans tests/test_stats.py qui mock la 
+  réponse Gemini et vérifie le format d'affichage.
+- Ne PAS toucher aux autres providers (openai, anthropic, ollama, 
+  groq) — chaque provider ayant sa propre convention pour 
+  usage_metadata, ce serait un prompt séparé.
+
+Livrable attendu : diff prêt à merger, test passant, mise à jour 
+README avec la nouvelle option.
+
+🚨 SPEC MANQUANTE potentielle : le format exact d'usage_metadata 
+retourné par le SDK Gemini utilisé (à vérifier avant implémentation, 
+peut être un dict ou un objet).
