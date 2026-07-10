@@ -1,10 +1,11 @@
 # BACKLOG.md — YT Knowledge Extractor
 
-**Version** : 1.5  
-**Date** : 2026-07-09
+**Version** : 1.6  
+**Date** : 2026-07-10
 **Auteur** : François Biller  
 **Statut** : V1.8 livrée — --export fermé, 2 items transversaux ajoutés à l'implémentation.
-  Ajout section "Dette de documentation — cohérence SPECS/code" (audit préparation bench Qwen 3 8B local).  
+  Ajout section "Dette de documentation — cohérence SPECS/code" (audit préparation bench Qwen 3 8B local).
+  Ajout de 2 pistes futures (--dump-prompts, format {chapters}) — session bench llm-lab.  
 **Repo** : https://github.com/fbi92120/yt-knowledge-extractor  
 
 ---
@@ -73,6 +74,61 @@ le dossier vide reste dans le vault.
   input/output/total tokens + coût estimé Gemini. Implémenter flag `--stats-json` 
   pour sortie fichier machine-lisable `stats-YYYY-MM-DD-slug.json`. Étendre 
   progressivement aux autres providers
+
+### Piste feature : flag `--dump-prompts`
+**Projet** : yt-extractor
+**Date** : 2026-07-09
+**Source** : session bench llm-lab (Qwen 3 8B via Ollama)
+**Description** : Pour reproduire fidèlement le comportement runtime de YT
+  Extractor sur un bench externe, `src/generator.py` a dû être instrumenté
+  temporairement pour intercepter `system_prompt` et `user_prompt` juste
+  avant l'appel LLM et les écrire sur disque, puis revert la modification.
+**Piste** : formaliser ce mécanisme en flag CLI `--dump-prompts` (ou
+  `--dry-capture`). Comportement proposé :
+  - Exécute le pipeline complet (metadata, transcript, formatage)
+  - Écrit `system_prompt.txt`, `user_prompt.txt`, `metadata.json` dans un
+    dossier (par défaut `./dump/` ou paramétrable)
+  - N'appelle PAS le LLM, n'écrit PAS de fiche, ne publie PAS de gist
+  - Exit propre avec confirmation terminal
+**Cas d'usage** :
+  - Debugging d'un prompt qui produit une sortie inattendue
+  - Benchmark comparatif entre providers (Gemini, Claude, Ollama...) sur le
+    même input
+  - Reproductibilité d'un cas de génération pour analyse post-mortem
+**Priorité** : basse — pas de blocage V1.x, à envisager si besoins
+  récurrents de bench externe
+**Statut** : ouvert
+
+### Piste évolution SPECS : format d'injection de `{chapters}`
+**Projet** : yt-extractor
+**Date** : 2026-07-09
+**Source** : lecture de code `src/generator.py:158` confirmée le 2026-07-09
+**Description** : La substitution du placeholder `{chapters}` dans le system
+  prompt utilise `str()` sur une `list[dict]` Python — soit une
+  représentation type `[{'title': 'Introduction', 'start_time': 0.0}, ...]`
+  avec `start_time` en float secondes.
+**Friction potentielle** : le reste du prompt exige des timestamps au
+  format HH:MM:SS. Le LLM doit convertir mentalement 690.0 → 00:11:30. Sur
+  Gemini 2.5 Flash, aucun impact observé. Sur modèles plus petits (< 30B,
+  ex. Qwen 3 8B), la charge cognitive peut dégrader la qualité du
+  chapitrage inféré.
+**Piste** : passer à un format lisible aligné sur la convention du reste
+  du prompt. Proposition :
+  ```
+  00:00:00 - Introduction
+  00:00:50 - The Disappearing Signal
+  00:02:23 - Friction Was Infrastructure
+  ...
+  ```
+  Un chapitre par ligne, timestamp en HH:MM:SS, séparateur explicite,
+  titre à la fin. Cohérent avec le format transcript et avec les liens
+  `?t=SECONDS` attendus en sortie.
+**Prérequis avant action** : bench comparatif à mener dans llm-lab
+  (Qwen 3 8B, format actuel vs format proposé) pour mesurer l'impact réel
+  sur la qualité du chapitrage. Ne pas modifier avant preuve.
+**Priorité** : basse tant que Gemini reste provider par défaut. Devient
+  moyenne si intégration Ollama en provider principal.
+**Statut** : ouvert — bench comparatif requis avant action
 
 ### ~~Feature --export — copie d'une fiche dans un dossier hors iCloud~~
 **Projet** : yt-extractor
