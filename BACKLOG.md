@@ -1,6 +1,6 @@
 # BACKLOG.md — YT Knowledge Extractor
 
-**Version** : 1.6  
+**Version** : 1.7  
 **Date** : 2026-07-10
 **Auteur** : François Biller  
 **Statut** : V1.8 livrée — --export fermé, 2 items transversaux ajoutés à l'implémentation.
@@ -11,6 +11,34 @@
 ---
 
 ## Bugs connus
+
+### Bug de template — description YouTube ré-injectée 6 fois dans le prompt système
+**Projet** : yt-extractor
+**Date** : 2026-07-10
+**Description** : le prompt système YT Extractor contient un bug de
+  template : la variable {description} (ou son équivalent injecté)
+  apparaît 7 fois au lieu d'1 seule. 6 injections parasites se trouvent
+  à l'intérieur des règles §9 (règles 2·3·4) et des Absolute rules 6
+  et 8, en plein milieu de phrases-hôtes. La 7e (§9 Sources) est
+  l'emplacement légitime.
+  Impact quantifié sur un run réel (vidéo Benjamin Code 17 min) :
+  ~8 000 tokens de pollution sur un prompt total de 16 313 caractères
+  — soit ~50% du prompt.
+  Impact qualitatif sur Gemini 2.5 Flash : indétectable (fenêtre 1M,
+  robuste à la répétition). Impact sur petit modèle local (Qwen 3 8B Q4
+  num_ctx=16384) : majoritaire du budget contexte, réduit drastiquement
+  l'attention aux instructions structurelles, biaise probablement
+  l'inclusion d'Hostinger en "source" malgré la règle d'exclusion.
+  Coût en production : gaspillage de tokens payants sur chaque appel
+  Gemini (facturation input).
+**Action** : dédupliquer la description dans le template Python de
+  génération du prompt système. La correction a été prototypée dans
+  llm-lab (prompts/yt_extractor_dedup.txt) — geste : garder l'occurrence
+  §9 encadrée par des délimiteurs BEGIN/END, remplacer les 6 autres
+  par la chaîne "the YouTube description provided in section 9
+  (Sources & références)". Réduction attendue : ~50% du prompt.
+**Source** : session llm-lab — 2026-07-10 — Expé 1 déduplication prompt
+**Statut** : ouvert
 
 ### [MINOR] check_archived_fiche() duplique la navigation vault de _find_existing_fiche()
 **Projet** : yt-extractor
@@ -282,6 +310,14 @@ le dossier vide reste dans le vault.
 - Sous-titres désactivés → `NoTranscriptError`
 - Vidéo indisponible → `NoTranscriptError`
 - (Nécessitent des mocks réseau)
+
+### src/llm/anthropic.py
+
+**`AnthropicProvider.generate()`** — implémenté mais jamais vérifié end-to-end
+- L'implémentation est complète (API Messages, même schéma que Groq), mais aucun appel réel contre l'API Anthropic n'est confirmé — l'auteur ne se souvient pas d'un test réel (2026-07-27).
+- Le README annonce « Implemented … not the production default » ; ne durcir en « and tested » **que si** un run réel réussit.
+- Test : mettre `ANTHROPIC_API_KEY` dans `.env`, `provider: anthropic` dans `config.yml`, lancer `yt` sur une vidéo courte, vérifier qu'une fiche conforme est produite.
+- Même vérification à prévoir pour `openai.py` / `ollama.py` le jour où ces stubs seront implémentés.
 
 ---
 
