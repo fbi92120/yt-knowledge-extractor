@@ -50,6 +50,7 @@
 ## Autres mesures (critères de livraison)
 
 - **Modules source** (.py hors test) : 17 — `find . -name '*.py' -not -path './.venv/*' ! -name 'test_*.py' -not -path './tests/*' | wc -l`
+- **Connecteurs LLM** : 3 implémentés (Gemini par défaut, Groq, Anthropic) + 2 stubs (OpenAI, Ollama), derrière une interface provider abstraite (`src/llm/base.py`) — vérifiable : `grep -c NotImplementedError src/llm/*.py` (0 = implémenté)
 - **Dépendances runtime** : 7 (youtube-transcript-api, yt-dlp, python-slugify, pyyaml, python-dotenv, requests, yaspin) + pytest — `grep -vE '^\s*#|^\s*$' requirements.txt`
 - **Ratio documentation / code** : 1,17 : 1 (5468 lignes `.md` de doc pour 4663 lignes `.py`)
 - **Annotations de type** : présentes (59 occurrences `->` / `from __future__ import annotations`)
