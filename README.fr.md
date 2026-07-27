@@ -115,7 +115,7 @@ Le projet supporte plusieurs providers LLM via une interface unifiée. Changez d
 |---|---|---|---|
 | **Gemini** (défaut) | `gemini-2.5-flash` | Oui, généreux | Contexte 1M tokens, gère facilement les longs transcripts |
 | Groq | `llama-3.3-70b-versatile` | Limité | Free tier plafonné à ~6k tokens par requête — inutilisable pour vidéos > ~5 min |
-| Anthropic | `claude-sonnet-4-5` | Non | Stub uniquement, implémentation à venir |
+| Anthropic | `claude-sonnet-4-5` | Non | Implémenté (API Messages, même schéma que Groq) ; pas le défaut de production |
 | OpenAI | `gpt-4o` | Non | Stub uniquement, implémentation à venir |
 | Ollama | modèle local | Local | Stub uniquement, implémentation à venir |
 

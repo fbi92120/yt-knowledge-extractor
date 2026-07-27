@@ -115,7 +115,7 @@ The project supports multiple LLM providers via a unified interface. Switch prov
 |---|---|---|---|
 | **Gemini** (default) | `gemini-2.5-flash` | Yes, generous | 1M token context, handles long transcripts easily |
 | Groq | `llama-3.3-70b-versatile` | Limited | Free tier caps requests at ~6k tokens — unusable for videos > ~5 min |
-| Anthropic | `claude-sonnet-4-5` | No | Stub only, implementation pending |
+| Anthropic | `claude-sonnet-4-5` | No | Implemented (Messages API, same pattern as Groq); not the production default |
 | OpenAI | `gpt-4o` | No | Stub only, implementation pending |
 | Ollama | any local model | Local | Stub only, implementation pending |
 
