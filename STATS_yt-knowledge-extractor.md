@@ -16,6 +16,8 @@
   `git log --format='%at' | sort -n | awk 'NR==1{f=$1} END{printf "%d jours\n", ($1-f)/86400}'`
 - **Plus longue interruption entre deux commits** : 56,99 jours
   `git log --format='%at' | sort -n | awk 'NR>1{g=$1-p; if(g>m)m=g} {p=$1} END{printf "%.2f jours\n", m/86400}'`
+> **Note — métriques git.** Valeurs ci-dessus mesurées le 2026-07-26 (développement). L'historique a été réécrit le 2026-07-27 (publication, `git filter-repo`), donc l'état git courant diffère : **44 commits, dernier commit 2026-07-27, 12 jours actifs**. Fenêtre de développement réelle : **2026-04-05 → 2026-07-10**.
+
 - **Nombre de fichiers de code, et lignes de code par langage** (hors `.venv`, `.git`, `__pycache__`, `output`) :
   - `.py` : 32 fichiers, 4663 lignes
   - `.sh` : 3 fichiers, 281 lignes
@@ -23,7 +25,7 @@
 
   Comptage fichiers : `find . -name '*.py' -not -path './.venv/*' -not -path './__pycache__/*' -not -path './output/*' | wc -l` (répéter par extension)
   Comptage lignes : `find . -name '*.py' -not -path './.venv/*' -not -path './__pycache__/*' -not -path './output/*' -print0 | xargs -0 cat | wc -l`
-- **Nombre de fichiers markdown de documentation, et lignes totales** : 13 fichiers, 3371 lignes (documentation rédigée).
+- **Nombre de fichiers markdown de documentation, et lignes totales** : 12 fichiers, 3330 lignes (documentation rédigée).
   Correction d'une mesure initiale trop inclusive (« 16 fichiers, 5468 lignes ») : elle comptait du contenu qui n'est pas de la documentation — 3 fiches d'exemple sous `examples/` (~2199 lignes) et 2 fiches de sortie sous `output/` (~1582 lignes), toutes des sorties de l'outil. Exclues ici.
   `find . -name '*.md' -not -path './.git/*' -not -path './.venv/*' -not -path './.pytest_cache/*' -not -path './examples/*' -not -path './output/*' | wc -l`
   `find . -name '*.md' -not -path './.git/*' -not -path './.venv/*' -not -path './.pytest_cache/*' -not -path './examples/*' -not -path './output/*' -print0 | xargs -0 cat | wc -l`
@@ -52,7 +54,7 @@
 - **Modules source** (.py hors test) : 17 — `find . -name '*.py' -not -path './.venv/*' ! -name 'test_*.py' -not -path './tests/*' | wc -l`
 - **Connecteurs LLM** : 3 implémentés (Gemini par défaut, Groq, Anthropic) + 2 stubs (OpenAI, Ollama), derrière une interface provider abstraite (`src/llm/base.py`) — vérifiable : `grep -c NotImplementedError src/llm/*.py` (0 = implémenté)
 - **Dépendances runtime** : 7 (youtube-transcript-api, yt-dlp, python-slugify, pyyaml, python-dotenv, requests, yaspin) + pytest — `grep -vE '^\s*#|^\s*$' requirements.txt`
-- **Ratio documentation / code** : 1,17 : 1 (5468 lignes `.md` de doc pour 4663 lignes `.py`)
+- **Ratio documentation / code** : 0,71 : 1 (3330 lignes `.md` de doc pour 4663 lignes `.py`)
 - **Annotations de type** : présentes (59 occurrences `->` / `from __future__ import annotations`)
 - **Packaging installable** (pyproject.toml / setup.py) : absent — installation via `setup.sh`
 - **Intégration continue** (.github/workflows) : absente
