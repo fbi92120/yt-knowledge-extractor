@@ -29,3 +29,8 @@ config.yml.save
 # Fiches générées localement (non versionnées)
 fiche*.md
 fiche*.Md
+
+# Couverture de tests (pytest-cov / coverage.py)
+.coverage
+.coverage.*
+htmlcov/
