@@ -6,3 +6,4 @@ python-dotenv>=1.0.0
 requests>=2.31.0
 yaspin>=3.0.0
 pytest>=8.0.0
+pytest-cov>=7.0.0
