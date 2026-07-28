@@ -1,11 +1,13 @@
 # BACKLOG.md — YT Knowledge Extractor
 
-**Version** : 1.7  
-**Date** : 2026-07-10
+**Version** : 1.9  
+**Date** : 2026-07-29 00:09
 **Auteur** : François Biller  
 **Statut** : V1.8 livrée — --export fermé, 2 items transversaux ajoutés à l'implémentation.
   Ajout section "Dette de documentation — cohérence SPECS/code" (audit préparation bench Qwen 3 8B local).
-  Ajout de 2 pistes futures (--dump-prompts, format {chapters}) — session bench llm-lab.  
+  Ajout de 2 pistes futures (--dump-prompts, format {chapters}) — session bench llm-lab.
+  Ajout de 2 transversaux détectés en lançant `pytest --cov` (pytest-cov absent de requirements.txt ; test_cli au mauvais interpréteur).
+  Fermeture de ces 2 transversaux (pytest-cov ajouté à requirements.txt ; test_cli aligné sur sys.executable) — 196 passed.  
 **Repo** : https://github.com/fbi92120/yt-knowledge-extractor  
 
 ---
@@ -67,6 +69,25 @@
   vérifier qu'aucune exception n'est levée et que la copie est préservée.
 **Priorité** : très basse — cas théorique, macOS retourne toujours 0
 **Statut** : ouvert
+
+### [MINOR] test_argument_mode_invalid_url invoque `python3` (système) au lieu de `sys.executable`
+**Projet** : yt-extractor
+**Date** : 2026-07-28
+**Source** : lancement `pytest --cov=src` — 1 test en échec
+**Description** : `tests/test_cli.py` définit `PYTHON = sys.executable` (ligne 26)
+  et l'utilise partout, SAUF à la ligne 79 où l'appel est codé en dur
+  `subprocess.run(["python3", "extract.py", "not-a-url"], ...)`. Sur une machine
+  où le `python3` système n'a pas les dépendances du projet (cas normal avec un
+  `.venv`), `extract.py` échoue à l'import (`ModuleNotFoundError: No module named
+  'yaml'`) et renvoie une traceback au lieu du message « URL YouTube… » attendu.
+  Résultat : `test_argument_mode_invalid_url` échoue alors que le code testé est
+  correct. Faux négatif, sensible à l'environnement.
+**Action** : Remplacer `"python3"` par `PYTHON` à la ligne 79 pour aligner ce test
+  sur les autres appels du fichier.
+**Priorité** : basse — test faussement rouge, pas de bug produit
+**Statut** : ~~ouvert~~ — **résolu 2026-07-28** : `"python3"` remplacé par `PYTHON`
+  dans `tests/test_cli.py`. Aucune autre occurrence en dur dans les fichiers de
+  test. Suite verte : 196 passed (`pytest --cov=src -m "not smoke"`).
 
 ### [MINOR] Ghost directories avant confirmation overwrite
 **Source** : gstack /review — adversarial synthesis
@@ -239,6 +260,28 @@ le dossier vide reste dans le vault.
 **Statut** : ouvert
 
 ---
+
+## Environnement / dépendances
+
+### `pytest-cov` absent de requirements.txt — couverture non reproductible
+**Projet** : yt-extractor
+**Date** : 2026-07-28
+**Source** : tentative `pytest --cov` sur une install issue de setup.sh
+**Description** : La commande `pytest --cov=src` échoue sur une install propre
+  (`error: unrecognized arguments: --cov`) car le plugin `pytest-cov` n'est pas
+  déclaré dans `requirements.txt`. Il a été installé manuellement dans le `.venv`
+  pour cette session (pytest-cov 7.1.0 + coverage 7.15.2), mais l'installation
+  n'est donc pas reproductible par un `setup.sh` neuf.
+  Mesure de référence obtenue une fois installé : **84 % de couverture globale**
+  (468 stmts, 73 miss). Modules les plus faibles : `src/llm/gemini.py` (32 %),
+  `src/llm/groq.py` (35 %) — code réseau non exercé.
+**Action** : Ajouter `pytest-cov` à `requirements.txt` (ou à un
+  `requirements-dev.txt` si l'on veut séparer les dépendances de test). Décider
+  du découpage runtime/dev avant modification.
+**Priorité** : basse — n'affecte pas le runtime, seulement l'outillage de test
+**Statut** : ~~ouvert~~ — **résolu 2026-07-28** : `pytest-cov>=7.0.0` ajouté à
+  `requirements.txt` à la suite de `pytest`. Séparation runtime/dev (éventuel
+  `requirements-dev.txt`) non tranchée ici — renvoyée au chantier packaging.
 
 ## Dette de documentation — cohérence SPECS/code
 

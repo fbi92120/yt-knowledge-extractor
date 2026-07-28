@@ -76,7 +76,7 @@ def test_argument_mode_invalid_url():
     """Mode argument + URL bidon → exit 1 + erreur URL non reconnue (chemin existant)."""
     _require_config()
     result = subprocess.run(
-        ["python3", "extract.py", "not-a-url"],
+        [PYTHON, "extract.py", "not-a-url"],
         capture_output=True,
         text=True,
         cwd=str(PROJECT),

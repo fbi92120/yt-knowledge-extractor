@@ -61,3 +61,42 @@
 - **Outillage lint / format / typecheck** (ruff / black / mypy) : absent
 - **LICENSE** : présent
 
+---
+
+## Couverture de tests (`pytest --cov`)
+
+*Mesure du 2026-07-29. Commande : `.venv/bin/pytest --cov=src -m "not smoke"`.*
+*Nécessite `pytest-cov` (déclaré dans `requirements.txt`).*
+
+Résultat de collecte : **196 passed** en ~59 s.
+
+**Couverture globale : 84 %** (468 instructions, 73 non couvertes).
+
+```
+Name                   Stmts   Miss  Cover
+------------------------------------------
+src/__init__.py            2      0   100%
+src/batch.py              51      0   100%
+src/export.py             36     10    72%
+src/generator.py          26      0   100%
+src/llm/__init__.py       11      0   100%
+src/llm/anthropic.py      26      5    81%
+src/llm/base.py           31      0   100%
+src/llm/gemini.py         25     17    32%
+src/llm/groq.py           23     15    35%
+src/llm/ollama.py          7      1    86%
+src/llm/openai.py          7      1    86%
+src/metadata.py           55      2    96%
+src/share.py              34      1    97%
+src/transcript.py         66     21    68%
+src/validator.py          43      0   100%
+src/writer.py             25      0   100%
+------------------------------------------
+TOTAL                    468     73    84%
+```
+
+Lecture : les modules les plus faibles sont les connecteurs LLM à appel réseau
+`src/llm/gemini.py` (32 %) et `src/llm/groq.py` (35 %), dont le code d'appel API
+n'est pas exercé par la suite de tests. `src/export.py` (72 %) et
+`src/transcript.py` (68 %) ont des branches d'erreur non couvertes.
+
